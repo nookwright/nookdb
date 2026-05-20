@@ -1,0 +1,44 @@
+{
+  "name": "@nookdb/cli",
+  "version": "0.0.0-pre.m5a",
+  "description": "Command-line interface for nookdb — backup, restore, migrate, inspect.",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "nookdb": "./bin/nookdb.mjs"
+  },
+  "main": "./dist/runtime.js",
+  "types": "./dist/runtime.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/runtime.js",
+      "types": "./dist/runtime.d.ts"
+    }
+  },
+  "files": [
+    "bin",
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint src --max-warnings 0",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "kleur": "^4.1.5",
+    "nookdb": "workspace:*",
+    "tsx": "^4.19.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.0",
+    "@vitest/coverage-v8": "1.6.1",
+    "execa": "^9.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.5.0"
+  },
+  "engines": {
+    "node": ">= 20"
+  }
+}
