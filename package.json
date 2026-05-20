@@ -1,0 +1,41 @@
+{
+  "name": "nookdb-monorepo",
+  "version": "0.0.0",
+  "description": "Nook monorepo root.",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">= 20",
+    "pnpm": ">= 10"
+  },
+  "scripts": {
+    "build:napi": "pnpm --filter @nookdb/binding build",
+    "build:napi:debug": "pnpm --filter @nookdb/binding build:debug",
+    "build:ts": "pnpm --filter nookdb build && pnpm --filter @nookdb/react build && pnpm --filter @nookdb/electron build",
+    "build": "pnpm build:napi && pnpm build:ts",
+    "test:rust": "cargo nextest run --workspace --exclude nookdb-napi",
+    "test:ts": "pnpm --filter nookdb test && pnpm --filter @nookdb/react test && pnpm --filter @nookdb/electron test",
+    "test": "pnpm test:rust && pnpm test:ts",
+    "lint:rust": "cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings",
+    "lint:ts": "pnpm --filter nookdb lint && pnpm --filter nookdb typecheck && pnpm --filter @nookdb/react lint && pnpm --filter @nookdb/react typecheck && pnpm --filter @nookdb/electron lint && pnpm --filter @nookdb/electron typecheck",
+    "lint": "pnpm lint:rust && pnpm lint:ts",
+    "format": "cargo fmt && prettier --write \"**/*.{ts,js,json,md,yml,yaml}\""
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^3.0.0",
+    "@types/node": "^20.12.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^9.0.0",
+    "prettier": "^3.2.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.5.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "better-sqlite3",
+      "electron",
+      "esbuild"
+    ]
+  }
+}

@@ -1,0 +1,8 @@
+dist/
+node_modules/
+target/
+pnpm-lock.yaml
+Cargo.lock
+*.node
+crates/nookdb-napi/index.js
+crates/nookdb-napi/index.d.ts

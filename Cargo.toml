@@ -1,0 +1,30 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/nookdb-core",
+    "crates/nookdb-napi",
+]
+
+[workspace.package]
+version = "0.0.1"
+authors = ["Nook contributors"]
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/nookwright/nookdb"
+rust-version = "1.78"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+unused_imports = "warn"
+
+[workspace.lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+missing_docs_in_private_items = "allow"
+module_name_repetitions = "allow"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+strip = "symbols"

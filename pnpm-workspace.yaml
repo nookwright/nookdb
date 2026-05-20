@@ -1,0 +1,6 @@
+packages:
+  - 'packages/*'
+  - 'crates/nookdb-napi' # exposes its own package.json for napi build
+  - 'docs'
+  - 'examples/*'
+  - 'benchmarks'

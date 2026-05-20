@@ -1,0 +1,55 @@
+# Rust
+/target/
+**/*.rs.bk
+
+# proptest writes a regression seed file whenever a property test fails. In
+# this repo's TDD workflow the deliberately-failing red-phase stub generates
+# meaningless seeds; real counterexamples surface as CI failures and are fixed
+# with targeted tests. Not tracked (matches the repo's established state).
+**/proptest-regressions/
+
+# Node
+node_modules/
+.pnpm-store/
+.pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build artifacts
+*.node
+dist/
+build/
+*.tsbuildinfo
+
+# NAPI-rs generated outputs (regenerated on every `napi build`)
+crates/nookdb-napi/index.js
+crates/nookdb-napi/index.d.ts
+
+# OS
+.DS_Store
+
+# Local-only auxiliary (npm scope placeholder publish — see memory/nookwright-brand-decision.md)
+nookwright-placeholder/
+Thumbs.db
+
+# Editor
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json.example
+*.swp
+*.swo
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Coverage
+coverage/
+*.lcov
+lcov.info
+
+# Misc
+*.log

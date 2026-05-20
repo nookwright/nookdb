@@ -1,0 +1,109 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    name: Rust (test + clippy + fmt)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest
+
+      - name: Format check
+        run: cargo fmt --check
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Test
+        # nookdb-napi is a cdylib N-API binding: its Rust *test* binary cannot
+        # link standalone on Linux (unresolved napi_* symbols — no Node at link
+        # time). The binding's behavior is validated by the JS job (real .node
+        # + end-to-end tests). Test the pure-Rust crates here.
+        run: cargo nextest run --workspace --exclude nookdb-napi
+
+  js:
+    name: JS (build + test + lint + typecheck)
+    needs: rust
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install Rust (needed for napi build)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Install JS deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Build NAPI binding
+        run: pnpm build:napi
+
+      - name: Build TS package
+        run: pnpm build:ts
+
+      - name: Typecheck
+        run: pnpm --filter nookdb typecheck
+
+      - name: Lint
+        run: pnpm lint:ts
+
+      - name: Test
+        run: pnpm test:ts
+
+      - name: Install Playwright browsers
+        run: pnpm --filter @nookdb/electron exec playwright install --with-deps
+
+      - name: E2E (Electron under xvfb)
+        run: xvfb-run --auto-servernum --server-args='-screen 0 1280x960x24' pnpm --filter @nookdb/electron test:e2e

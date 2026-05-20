@@ -1,0 +1,18 @@
+# Normalize all text files to LF in the repository and the working tree.
+# This overrides a local `core.autocrlf=true` so Windows checkouts no longer
+# show phantom CRLF-only modifications in `git status`.
+* text=auto eol=lf
+
+# Binary artifacts — never apply line-ending conversion.
+*.node binary
+*.wasm binary
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.zip  binary
+*.gz   binary
