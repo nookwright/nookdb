@@ -1,0 +1,38 @@
+{
+  "name": "@nookdb/electron",
+  "version": "0.0.1",
+  "type": "module",
+  "exports": {
+    "./main": {
+      "types": "./dist/main/index.d.ts",
+      "import": "./dist/main/index.js"
+    },
+    "./preload": {
+      "types": "./dist/preload/index.d.ts",
+      "import": "./dist/preload/index.js"
+    },
+    "./renderer": {
+      "types": "./dist/renderer/index.d.ts",
+      "import": "./dist/renderer/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src --max-warnings=0"
+  },
+  "peerDependencies": {
+    "nookdb": "workspace:*",
+    "electron": ">=28"
+  },
+  "devDependencies": {
+    "nookdb": "workspace:*",
+    "electron": "^30.0.0",
+    "@playwright/test": "^1.45.0",
+    "playwright": "^1.45.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.5.0"
+  }
+}
