@@ -1,0 +1,67 @@
+---
+title: Architecture overview
+description: How the Rust core, NAPI binding, TS surface, and Electron bridge fit together.
+---
+
+```text
+   ┌──────────────────────────────────────────────────┐
+   │  TypeScript API (npm package `nookdb`)           │
+   │  open() / schema / collection / live / tx        │
+   │  + @nookdb/electron bridge (main↔renderer)       │
+   └─────────────────────┬────────────────────────────┘
+                         │  NAPI-rs FFI
+   ┌─────────────────────▼────────────────────────────┐
+   │  Rust core (native addon, .node binary)          │
+   │  • Schema validator + type registry              │
+   │  • Query planner + secondary index engine        │
+   │  • Reactive notifier (post-commit hooks)         │
+   │  • Transaction manager (MVCC snapshots)          │
+   │  • Backup / restore + migration runner           │
+   └─────────────────────┬────────────────────────────┘
+                         │
+   ┌─────────────────────▼────────────────────────────┐
+   │  redb (storage engine — ACID + MVCC, single-file)│
+   └──────────────────────────────────────────────────┘
+```
+
+## Layers
+
+### Rust core (`crates/nookdb-core`)
+
+Pure Rust, no NAPI dependency. Owns:
+- The schema IR and validator (`schema/`)
+- The composite-key codec (`codec/`)
+- The redb-backed storage layer (`storage.rs`)
+- The post-commit notifier (`notify.rs`)
+- The reactive engine (`live.rs`)
+- The migration runner (`migrate.rs`)
+- The backup/restore module (`backup.rs`)
+
+Testable without Node. Has its own integration tests (~80 tests) plus proptest suites.
+
+### NAPI binding (`crates/nookdb-napi`)
+
+Bridges the Rust core to JavaScript. Produces a `.node` binary per platform via napi-rs. Six platforms are shipped via per-platform NPM packages (`@nookdb/core-<triple>`).
+
+### TS surface (`packages/nookdb`)
+
+Wraps the NAPI binding with typed surfaces. Schema inference, error mapping, and the `LiveQuery<T>` class live here. The Rust core is the **authoritative** validator — the TS surface trusts it.
+
+### Electron bridge (`packages/electron`)
+
+A thin transport layer on top of the TS surface:
+- `@nookdb/electron/main` — `openHost()` and `connectPort()` for the Host process.
+- `@nookdb/electron/preload` — `exposeNookBridge()` to forward a MessagePort.
+- `@nookdb/electron/renderer` — `connectNook()` returning a typed proxy.
+
+Wire protocol is structured-clone over `MessageChannel`. Schema-hash handshake rejects mismatched schemas on connect. Per-renderer subscription registry cleans up on disconnect.
+
+## What's NOT shipped
+
+No HTTP server, no admin dashboard, no replication, no CRDT, no GDPR helpers, no audit log. These were sehawq.db v5 features deliberately dropped — see PRD §14 for the rationale and the [Migrating from sehawq.db v5 guide](/guides/migrating-from-sehawq-v5/).
+
+## Where to next
+
+- See [Quick start](/quick-start/) to spin up a database.
+- See the [Electron bridge guide](/guides/electron-bridge/) for the main↔renderer setup.
+- See the [Backup / restore guide](/guides/backup-restore/) for snapshot management.

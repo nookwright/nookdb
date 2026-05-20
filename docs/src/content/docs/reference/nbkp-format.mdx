@@ -1,0 +1,56 @@
+---
+title: '.nbkp format'
+description: Wire layout of the portable backup file (format version 1).
+---
+
+`.nbkp` is the portable backup format produced by `db.backup(...)` (and `nookdb backup`). The spec below is **frozen for format version 1**. Future versions are reserved for compression, encryption, or restructuring; restore refuses unknown versions.
+
+## File layout
+
+```
+┌────────────────────────────────────────────────────────────┐
+│ HEADER                                                     │
+│   magic[8]         "NOOKBKUP" (ASCII)                      │
+│   format_ver       u16   = 1                               │
+│   created_ms       u64   wallclock ms at backup time       │
+│   schema_present   u8    0 = absent, 1 = present           │
+│   schema_hash[32]  SHA-256 of canonical schema descriptor  │
+│                          (zero-filled when schema_present=0)│
+│   redb_marker      u32   informational (e.g. 0x02000000)   │
+│   entry_count_hint u64   informational; 0 = unknown        │
+├────────────────────────────────────────────────────────────┤
+│ ENTRIES (repeated)                                         │
+│   key_len          u32   (must be > 0 for entries)         │
+│   key              bytes (composite: "{coll}\0{user_key}") │
+│   value_len        u32                                     │
+│   value            bytes                                   │
+├────────────────────────────────────────────────────────────┤
+│ SENTINEL                                                   │
+│   key_len = 0      u32                                     │
+├────────────────────────────────────────────────────────────┤
+│ FOOTER                                                     │
+│   crc32            u32   CRC32 over [HEADER ‖ ENTRIES ‖    │
+│                          SENTINEL]                         │
+└────────────────────────────────────────────────────────────┘
+```
+
+All multi-byte integers are big-endian.
+
+## Field notes
+
+- **magic** — Eight ASCII bytes `NOOKBKUP`. Restore aborts with `NookCorruptionError` if the magic does not match.
+- **format_ver** — Currently `1`. Future versions are reserved; an unknown version triggers `NookCorruptionError: unsupported backup format version N`.
+- **schema_hash** — When the source DB has a known schema, the hash recorded here matches the schema-hash value the M4 Electron-bridge handshake uses. Restore validates this against the open DB's schema unless `skipSchemaCheck: true` is passed. A hash mismatch triggers `NookSchemaError`.
+- **redb_marker** — Informational only. The `.nbkp` format is independent of the redb on-disk layout; restore writes through the public storage API.
+- **entry_count_hint** — Informational. Restore enumerates until the sentinel; the hint is for progress reporting and does NOT affect correctness.
+- **CRC32** — Computed over everything up to but not including the footer. Mismatch triggers `NookCorruptionError: backup checksum mismatch`. A truncated stream triggers `NookCorruptionError: truncated backup stream`.
+
+## Restore semantics
+
+- Default: target DB must be empty. Non-empty DB without `allowOverwrite: true` triggers `NookConflictError`.
+- With `allowOverwrite: true`: existing entries are cleared in the same write transaction that loads the backup. All-or-nothing.
+- Secondary indexes are NOT in the backup. After a restore the indexes will be rebuilt lazily by writes; if you need eager indexing, perform a follow-up scan (out of scope for v1).
+
+## Practical usage
+
+The format is stable but opaque — `.nbkp` files are intended to be consumed by `nookdb restore` or the programmatic `restoreFromPath`. Inspecting them by hand is possible (it's binary but small), but should not be necessary in normal use.

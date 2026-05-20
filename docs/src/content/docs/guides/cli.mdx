@@ -1,0 +1,80 @@
+---
+title: CLI
+description: nookdb command reference — backup, restore, migrate, inspect.
+---
+
+`@nookdb/cli` ships a small `nookdb` binary for backup, restore, migration ledger management, and database inspection.
+
+## Install
+
+```bash
+pnpm add -D @nookdb/cli
+# Or globally:
+pnpm add -g @nookdb/cli
+```
+
+The CLI runs on Node 20+; no platform-specific build step.
+
+## Commands
+
+### `nookdb backup <db> <out>`
+
+Create a portable `.nbkp` snapshot of `<db>` at `<out>`. The write is atomic (writes to `<out>.tmp` then renames).
+
+```bash
+nookdb backup ./app.db ./snapshots/2026-05-20.nbkp
+# Backup written: 1234 entries, 5678 bytes → ./snapshots/2026-05-20.nbkp
+```
+
+### `nookdb restore <backup> <db>`
+
+Restore `<db>` from a `.nbkp` file. By default, the target DB must be empty.
+
+```bash
+nookdb restore ./snapshots/2026-05-20.nbkp ./app.db --allow-overwrite
+# Restore complete: 1234 entries (5678 bytes read) → ./app.db
+```
+
+Options:
+- `--allow-overwrite` — allow restoring into a non-empty DB (destructive).
+- `--skip-schema-check` — skip the backup↔DB schema_hash validation.
+- `--create` — create `<db>` if it does not exist.
+
+### `nookdb migrate status <db>`
+
+```bash
+nookdb migrate status ./app.db
+# current_version: 3
+# applied:         [1, 2, 3]
+```
+
+### `nookdb migrate up <db> --versions n,m,...`
+
+```bash
+nookdb migrate up ./app.db --versions 1,2,3
+# Migration ledger updated: 3 version(s) recorded.
+```
+
+Forward-only. Already-applied versions are silently skipped.
+
+### `nookdb inspect <db>`
+
+Prints DB path, file size, migration ledger, and per-collection entry counts.
+
+```bash
+nookdb inspect ./app.db
+# Path:       ./app.db
+# File size:  12.4 MiB (13,033,472 bytes)
+# Migration:
+#   current_version: 3
+#   applied:         [1, 2, 3]
+# Collections:
+#   users    1240 entries
+#   posts     312 entries
+```
+
+## Exit codes
+
+- `0` — success
+- `1` — runtime failure (with `error: [kind] message` on stderr)
+- `2` — usage error (missing arg, unknown command)

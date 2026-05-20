@@ -1,0 +1,81 @@
+---
+title: API reference
+description: Top-level exports from the nookdb package.
+---
+
+This is a hand-written overview. Detailed type signatures are visible in your editor via the package's bundled `.d.ts` files.
+
+## Top-level exports
+
+```ts
+import {
+  // Opening
+  open,                       // (path, options?) → Database | SchemaDatabase
+
+  // Schema DSL
+  s,                          // schema-builder namespace
+  toDescriptor,               // schema → canonical JSON (used by the Electron bridge)
+
+  // Backup / restore (freestanding orchestrator helpers)
+  backupToPath,
+  restoreFromPath,
+
+  // Reactive
+  LiveQuery,                  // class returned by collection.live(...)
+
+  // Errors
+  NookError,
+  NookStorageError,
+  NookCorruptionError,
+  NookConflictError,
+  NookTransactionError,
+  NookInvalidArgError,
+  NookClosedError,
+  NookSchemaError,
+  NookMigrationError,
+  NookPlatformError,
+
+  // Error mapping (rare — usually used internally)
+  mapNativeError,
+} from 'nookdb';
+```
+
+## `Database` (bytes-only handle)
+
+Returned by `open(path)` without options. The minimal byte-level API:
+
+```ts
+class Database {
+  put(collection: string, key: Buffer, value: Buffer): Promise<void>;
+  get(collection: string, key: Buffer): Promise<Buffer | null>;
+  delete(collection: string, key: Buffer): Promise<boolean>;
+  listCollection(collection: string): Promise<{ key: Buffer; value: Buffer }[]>;
+  listCollectionNames(): Promise<string[]>;
+  backup(destPath: string): Promise<BackupStats>;
+  restore(srcPath: string, opts?: RestoreOptions): Promise<RestoreStats>;
+  migrateStatus(): Promise<{ currentVersion: number; appliedCount: number }>;
+  migrateRun(versions: number[]): Promise<void>;
+  migrateListApplied(): Promise<number[]>;
+  close(): void;
+}
+```
+
+## `SchemaDatabase<TSchema>` (typed handle)
+
+Returned by `open(path, { schema })`. Every collection key from `TSchema` becomes a typed `Collection` proxy on the handle, plus the same `backup` / `restore` / `migrate*` / `listCollectionNames` / `close` methods.
+
+```ts
+const db = await open('./app.db', { schema: { users: s.collection({ /* … */ }) } });
+db.users.insert(/* … */);
+db.users.find(/* … */);
+db.backup(/* … */);
+db.close();
+```
+
+## Other packages
+
+- `@nookdb/electron/main`, `@nookdb/electron/preload`, `@nookdb/electron/renderer` — the multi-process bridge.
+- `@nookdb/react` — the `useLive` hook.
+- `@nookdb/cli` — the `nookdb` command-line binary.
+
+Each package has its own README with focused docs.

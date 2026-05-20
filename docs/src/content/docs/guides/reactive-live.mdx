@@ -1,0 +1,58 @@
+---
+title: 'Reactive: live()'
+description: Snapshot semantics, subscribe vs AsyncIterator, useLive() for React.
+---
+
+Every collection's `find`-style query has a `.live(...)` sibling that emits a new snapshot on every committed write that touches a matching document.
+
+## Subscribe pattern
+
+```ts
+const lq = db.users.live({ role: 'admin' });
+const off = lq.subscribe((admins) => {
+  console.log(`current admins: ${admins.length}`);
+});
+// ... later
+off();        // unsubscribe one callback
+lq.dispose(); // tear down the subscription entirely
+```
+
+## AsyncIterator pattern
+
+```ts
+for await (const admins of db.users.live({ role: 'admin' })) {
+  render(admins);
+}
+```
+
+The iterator yields the same snapshots the `subscribe()` callback would receive. Exiting the loop disposes the subscription.
+
+## Sync access
+
+```ts
+const lq = db.users.live({ role: 'admin' });
+lq.value;       // current snapshot (undefined until first emission)
+```
+
+## React: `useLive`
+
+```tsx
+import { useLive } from '@nookdb/react';
+
+function AdminList({ db }) {
+  const admins = useLive(() => db.users.live({ role: 'admin' }), [db]);
+  return (
+    <ul>{admins.map((u) => <li key={u.id}>{u.email}</li>)}</ul>
+  );
+}
+```
+
+The hook handles subscription + cleanup; the result is the current snapshot.
+
+## Coalescing
+
+Rapid writes produce a single emission per "burst" — the engine coalesces and the subscriber sees only the latest snapshot. This protects backpressured renderers from update storms.
+
+## What live() does NOT do
+
+`live()` re-runs the matching `find` query inside the engine after every committed write. It is **not** a CRDT and does **not** sync across machines. For multi-process Electron apps see the [Electron bridge guide](/guides/electron-bridge/).

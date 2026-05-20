@@ -1,0 +1,34 @@
+---
+title: nookdb
+description: Schema-first, reactive, local-first database for Electron.
+template: splash
+hero:
+  tagline: Schema-first, reactive, local-first database for Electron.
+  actions:
+    - text: Quick start
+      link: /quick-start/
+      icon: right-arrow
+      variant: primary
+    - text: View on GitHub
+      link: https://github.com/omerarslan0/nookdb
+      icon: external
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Why nookdb?
+
+<CardGrid>
+  <Card title="Schema-first" icon="document">
+    Define data once; types, validation, and indexes flow from a single source.
+  </Card>
+  <Card title="Reactive by default" icon="bars">
+    Every query has a `.live()` variant. UI stays in sync with the database.
+  </Card>
+  <Card title="Multi-process built in" icon="puzzle">
+    Electron renderers use the same API as the main process via a typed proxy — no IPC code.
+  </Card>
+  <Card title="Rust-powered" icon="rocket">
+    ACID transactions on redb. fsync where it matters.
+  </Card>
+</CardGrid>

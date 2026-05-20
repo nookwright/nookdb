@@ -1,0 +1,61 @@
+---
+title: Schema DSL
+description: The s.* schema builder — every field, constraint, and index.
+---
+
+The `s.*` namespace is nookdb's schema DSL. Every type, validator, and index in your app starts here.
+
+## Fields
+
+```ts
+import { s } from 'nookdb';
+
+const schema = {
+  users: s.collection({
+    id: s.id(),                                    // UUID v7, monotonic
+    email: s.string().email(),                     // RFC 5322 validation
+    name: s.string().min(1).max(100),
+    age: s.number().int().min(0).optional(),       // optional → undefined permitted
+    role: s.enum(['admin', 'user']).default('user'),
+    tags: s.array(s.string()),
+    createdAt: s.date().default(() => new Date()),
+    profile: s.object({ bio: s.string().nullable() }),
+  }),
+};
+```
+
+### Available builders
+
+- `s.id()` — UUID v7 string. Auto-generated if not provided.
+- `s.string()` — UTF-8 string. Chain `.min(n)`, `.max(n)`, `.email()`, `.regex(/…/)`, `.nullable()`, `.optional()`, `.default(value | () => value)`.
+- `s.number()` — JS number. Chain `.int()`, `.min(n)`, `.max(n)`, `.nullable()`, `.optional()`, `.default(...)`.
+- `s.boolean()` — Chain `.nullable()`, `.optional()`, `.default(true | false)`.
+- `s.date()` — JS `Date`. Chain `.nullable()`, `.optional()`, `.default(...)`.
+- `s.enum([...])` — string literal union. Chain `.default(...)`.
+- `s.array(itemBuilder)` — array of any builder.
+- `s.object({...})` — nested object.
+- `s.ref(() => schema.users)` — foreign-key reference (typed).
+
+## Indexes
+
+```ts
+const schema = {
+  posts: s
+    .collection({ /* fields */ })
+    .index('authorId')                  // single-field
+    .index(['authorId', 'publishedAt']) // composite (prefix-usable)
+    .uniqueIndex('slug')                // unique + index
+    .index('publishedAt', { sparse: true }), // null-skip
+};
+```
+
+Indexes are schema-declarative — there is no runtime `createIndex`. Schema changes trigger a migration (see [Migrations](/guides/migrations/)).
+
+## Type inference
+
+```ts
+type User = typeof schema.users.$type;
+// { id: string; email: string; name: string; age?: number | undefined; role: 'admin' | 'user'; ... }
+```
+
+Use `$type` in app code to keep handwritten types and runtime validation in sync.

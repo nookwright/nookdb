@@ -1,0 +1,84 @@
+---
+title: Electron bridge
+description: Main + preload + renderer setup, schema-hash handshake, Authorizer.
+---
+
+The `@nookdb/electron` package lets Electron renderers use the same `db.users.find(...)` / `db.users.live(...)` API as the main process — no IPC code, no manual serialization.
+
+## Setup
+
+### `main.ts`
+
+```ts
+import { app, BrowserWindow, MessageChannelMain } from 'electron';
+import { openHost } from '@nookdb/electron/main';
+import { schema } from '../shared/schema';
+
+let host: Awaited<ReturnType<typeof openHost>>;
+
+app.whenReady().then(async () => {
+  host = await openHost('./app.db', { schema });
+
+  const win = new BrowserWindow({
+    webPreferences: { preload: __dirname + '/preload.js', contextIsolation: true },
+  });
+
+  const { port1, port2 } = new MessageChannelMain();
+  host.connectPort(port1, {
+    frameUrl: win.webContents.getURL(),
+    origin: null,
+    webContentsId: win.webContents.id,
+  });
+  win.webContents.postMessage('nook:port', null, [port2]);
+
+  win.loadFile('index.html');
+});
+```
+
+### `preload.ts`
+
+```ts
+import { exposeNookBridge } from '@nookdb/electron/preload';
+exposeNookBridge();
+```
+
+### `renderer.ts`
+
+```ts
+import { connectNook } from '@nookdb/electron/renderer';
+import { schema } from '../shared/schema';
+
+const db = await connectNook({ schema });
+const admins = await db.users.find({ role: 'admin' });
+for await (const list of db.users.live({ role: 'admin' })) render(list);
+```
+
+The renderer-side `db` is a typed proxy. Method calls forward to the main-process Host over the MessageChannel; live subscriptions push from main back to renderer.
+
+## Schema-hash handshake
+
+When a renderer connects, it sends its schema hash. Main compares to its own; on mismatch, the connection is rejected with a `NookSchemaError`. This prevents silently divergent schemas from corrupting state.
+
+## Authorizer
+
+Default: every renderer can call every op. To gate:
+
+```ts
+import { openHost, type Authorizer } from '@nookdb/electron/main';
+
+const acl: Authorizer = {
+  authorize(sender, op) {
+    if (sender.frameUrl?.startsWith('app://')) return 'allow';
+    if (op.kind === 'find') return 'allow';
+    return 'deny';
+  },
+};
+
+const host = await openHost('./app.db', { schema, authorizer: acl });
+```
+
+A `deny` decision throws `NookForbiddenError` in the renderer.
+
+## What about live() across windows?
+
+Yes — open the same app in two windows and writes from one render live updates in the other. The Host fans out commit notifications to every connected renderer that has an active live subscription matching the changed document. See the `electron-notes` example for a runnable demo.

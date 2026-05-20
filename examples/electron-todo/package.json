@@ -1,0 +1,30 @@
+{
+  "name": "@nookdb/example-electron-todo",
+  "version": "0.0.0",
+  "description": "Minimal Electron + nookdb todo app showcasing schema + CRUD + reactive live().",
+  "private": true,
+  "type": "module",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "nookdb": "workspace:*",
+    "@nookdb/electron": "workspace:*",
+    "@nookdb/react": "workspace:*",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "electron": "^30.0.0",
+    "electron-vite": "^2.0.0",
+    "typescript": "^5.4.0",
+    "vite": "^5.2.0"
+  }
+}

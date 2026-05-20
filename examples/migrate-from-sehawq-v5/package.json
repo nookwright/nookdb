@@ -1,0 +1,14 @@
+{
+  "name": "@nookdb/example-migrate-from-sehawq-v5",
+  "version": "0.0.0",
+  "description": "Manual sehawq.db v5 → nookdb migration script (~50 lines).",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "convert": "tsx convert.ts"
+  },
+  "dependencies": {
+    "nookdb": "workspace:*",
+    "tsx": "^4.19.0"
+  }
+}

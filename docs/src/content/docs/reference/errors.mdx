@@ -1,0 +1,59 @@
+---
+title: Errors
+description: NookError hierarchy and the [kind] message convention.
+---
+
+Every error nookdb throws extends `NookError`, which extends `Error`. `instanceof` checks work end-to-end (the M5a `setPrototypeOf` hardening preserves the prototype chain across sub-ES2015 transpile targets).
+
+## Hierarchy
+
+```text
+Error
+└── NookError                  // any nookdb error
+    ├── NookStorageError       // I/O, disk, redb-level failures
+    ├── NookCorruptionError    // bad magic, CRC mismatch, truncated streams
+    ├── NookConflictError      // unique-index violation, restore-target-not-empty
+    ├── NookTransactionError   // commit/rollback failures
+    ├── NookInvalidArgError    // bad collection name, empty key, etc.
+    ├── NookClosedError        // op on a closed database
+    ├── NookSchemaError        // schema validation, schema hash mismatch
+    ├── NookMigrationError     // ledger corruption, migration runner errors
+    └── NookPlatformError      // missing precompiled binary for current platform
+```
+
+## The `[kind] message` convention
+
+Errors that originate in the Rust core are emitted across the NAPI boundary with a `[kind]` prefix:
+
+```text
+[storage] disk full while writing entries table
+[corruption] backup checksum mismatch
+[conflict] users.email = "ali@example.com" already exists
+[schema] backup schema hash mismatch
+```
+
+The TS surface parses the prefix and instantiates the matching subclass automatically — code that catches `NookCorruptionError` works whether the error originated in Rust or in TS.
+
+## Catching
+
+```ts
+import { NookConflictError, NookSchemaError } from 'nookdb';
+
+try {
+  await db.users.insert({ email: 'ali@example.com' });
+} catch (err) {
+  if (err instanceof NookConflictError) {
+    console.warn('email already in use');
+    return;
+  }
+  if (err instanceof NookSchemaError) {
+    console.error('schema validation failed:', err.message);
+    return;
+  }
+  throw err;
+}
+```
+
+## Stable kinds
+
+The `[kind]` slug is part of the stable public API. The same Rust enum variant maps to the same kind slug across nookdb releases.

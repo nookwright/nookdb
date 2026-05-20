@@ -1,0 +1,59 @@
+---
+title: Quick start
+description: Install nookdb and open your first database in under a minute.
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+nookdb is a Rust-powered, schema-first, reactive local database for Electron desktop apps. This page gets you to a working database in three steps.
+
+## Install
+
+```bash
+pnpm add nookdb
+# or: npm install nookdb / yarn add nookdb
+```
+
+nookdb ships precompiled native binaries for Win/macOS/Linux × x64/arm64. No build toolchain required.
+
+## Define a schema
+
+```ts
+import { s } from 'nookdb';
+
+export const schema = {
+  users: s
+    .collection({
+      id: s.id(), // UUID v7
+      email: s.string().email(),
+      role: s.enum(['admin', 'user']).default('user'),
+      createdAt: s.date().default(() => new Date()),
+    })
+    .uniqueIndex('email')
+    .index('role'),
+};
+```
+
+## Open, insert, query
+
+```ts
+import { open } from 'nookdb';
+import { schema } from './schema';
+
+const db = await open('./app.db', { schema });
+
+await db.users.insert({ email: 'ali@example.com', role: 'admin' });
+
+const admins = await db.users.find({ role: 'admin' });
+//    ^? { id: string; email: string; role: 'admin' | 'user'; createdAt: Date }[]
+
+db.close();
+```
+
+That's it. `db.users` is fully typed from the schema; the Rust core is the authoritative validator.
+
+## Next steps
+
+- Browse the [Schema DSL guide](/guides/schema-dsl/) to see every builder.
+- Try [Reactive `live()`](/guides/reactive-live/) for UI that stays in sync with the database.
+- Wire up [the Electron bridge](/guides/electron-bridge/) so renderers use the same API as main.

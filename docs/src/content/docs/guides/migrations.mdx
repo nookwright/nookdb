@@ -1,0 +1,41 @@
+---
+title: Migrations
+description: The version ledger, migrate status / up, and what's deferred.
+---
+
+nookdb's migration runner is a small version-tracking ledger. It records which integer versions have been applied; the full migration DSL (up/down/backfill) is deferred to a later release.
+
+## Programmatic API
+
+```ts
+import { open } from 'nookdb';
+const db = await open('./app.db', { schema });
+
+const status = await db.migrateStatus();
+// { currentVersion: 0, appliedCount: 0 }
+
+await db.migrateRun([1, 2, 3]);
+const applied = await db.migrateListApplied();
+// [1, 2, 3]
+```
+
+`migrateRun` is idempotent — applying a version that is already recorded is a no-op. Versions are persisted in a dedicated `_meta` collection in the same DB file.
+
+## CLI
+
+```bash
+nookdb migrate status ./app.db
+# current_version: 0
+# applied:         []
+
+nookdb migrate up ./app.db --versions 1,2,3
+# Migration ledger updated: 3 version(s) recorded.
+```
+
+## Concurrency
+
+`migrateRun` reads-merges-writes the ledger inside a single redb write transaction (hardened in M5a). Two concurrent `migrateRun` calls cannot lost-update each other.
+
+## What's deferred
+
+The DSL form (`defineMigration({ version, up, down })` with backfill helpers) is not in this release. The Runner today is the version-tracker the full DSL will attach to without crate changes.

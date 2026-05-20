@@ -1,0 +1,57 @@
+---
+title: Queries
+description: find, findOne, count, delete — operators, builder, ordering.
+---
+
+After [opening a database with a schema](/quick-start/), every collection has a typed query API.
+
+## Basic shape
+
+```ts
+await db.users.find();                                  // all
+await db.users.find({ role: 'admin' });                 // filtered
+await db.users.findOne({ email: 'ali@example.com' });   // first or null
+await db.users.count({ role: 'admin' });                // number
+await db.users.delete({ role: 'user' });                // returns count removed
+```
+
+Each method returns its result type inferred from the schema — `find()` returns `Doc[]`, `findOne()` returns `Doc | null`, etc.
+
+## Operators
+
+Filter values may be raw scalars (`role: 'admin'` ≡ equality) or operator objects:
+
+```ts
+await db.users.find({
+  age: { $gte: 18, $lt: 65 },
+  email: { $regex: '@example\\.com$' },
+  tags:  { $in: ['friend', 'family'] },
+  bio:   { $exists: true },
+});
+```
+
+Supported: `$gt`, `$gte`, `$lt`, `$lte`, `$ne`, `$in`, `$nin`, `$exists`, `$regex`.
+
+## Where builder
+
+For more dynamic queries:
+
+```ts
+await db.users
+  .where({ role: 'admin' })
+  .orderBy('createdAt', 'desc')
+  .limit(20);
+```
+
+## Transactions
+
+Multi-document writes commit atomically:
+
+```ts
+await db.transaction(async (tx) => {
+  const user = await tx.users.insert({ email: '...' });
+  await tx.posts.insert({ authorId: user.id, title: 'Hi' });
+}); // commit on return, rollback on throw
+```
+
+See the [Reactive guide](/guides/reactive-live/) for `live()` — every query above has a reactive sibling.

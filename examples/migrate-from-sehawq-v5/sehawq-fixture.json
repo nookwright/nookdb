@@ -1,0 +1,10 @@
+{
+  "version": 5,
+  "exportedAt": "2025-12-15T10:30:00Z",
+  "data": {
+    "users::alice": { "id": "alice", "name": "Alice Example", "email": "alice@example.com" },
+    "users::bob":   { "id": "bob",   "name": "Bob Example",   "email": "bob@example.com" },
+    "posts::p1":    { "id": "p1",    "authorId": "alice", "title": "Hello", "body": "First post" },
+    "posts::p2":    { "id": "p2",    "authorId": "bob",   "title": "Hi",    "body": "Second post" }
+  }
+}

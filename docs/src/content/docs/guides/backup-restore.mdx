@@ -1,0 +1,58 @@
+---
+title: Backup / restore
+description: Programmatic API, .nbkp format, atomic write, orchestrator pattern.
+---
+
+nookdb ships first-class backup and restore. The format is a portable `.nbkp` v1 binary that does NOT depend on the underlying redb file format — backups remain restorable across nookdb upgrades.
+
+## Method form
+
+```ts
+const db = await open('./app.db', { schema });
+
+const stats = await db.backup('./snap.nbkp');
+// { entryCount: 1234, bytesWritten: 56789 }
+
+// Later, on a fresh DB or with --allow-overwrite:
+const newDb = await open('./restored.db', { schema });
+await newDb.restore('./snap.nbkp');
+```
+
+## Options
+
+```ts
+await db.restore('./snap.nbkp', {
+  allowOverwrite: true,    // default false: throws NookConflictError if DB not empty
+  skipSchemaCheck: true,   // default false: throws NookSchemaError on schema_hash mismatch
+});
+```
+
+## Orchestrator pattern
+
+For scheduled-backup orchestrators (point-in-time snapshots, corruption recovery tools, etc.), use the freestanding helpers:
+
+```ts
+import { backupToPath, restoreFromPath } from 'nookdb';
+
+await backupToPath(db, './snap.nbkp');
+await restoreFromPath(db, './snap.nbkp', { allowOverwrite: true });
+```
+
+These are exactly equivalent to the method form — same NAPI call. The freestanding form exists so external packages can attach without depending on the `Database` instance shape.
+
+## Atomic write
+
+`backup` writes to `<dest>.tmp`, fsyncs, and atomically renames. A backup interrupted mid-write never produces a half-formed `.nbkp` file.
+
+## CLI
+
+```bash
+nookdb backup ./app.db ./snap.nbkp
+nookdb restore ./snap.nbkp ./app.db --allow-overwrite
+```
+
+See the [CLI guide](/guides/cli/) for full flag reference.
+
+## File format
+
+The `.nbkp` v1 format is documented in the [reference](/reference/nbkp-format/) — header, length-prefixed entries, sentinel, CRC32 footer. Inspectable by any reader that follows the spec.

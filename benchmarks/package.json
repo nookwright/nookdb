@@ -1,0 +1,22 @@
+{
+  "name": "@nookdb/benchmarks",
+  "version": "0.0.0",
+  "description": "Head-to-head benchmarks: nookdb vs better-sqlite3.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "run": "tsx src/runner.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "nookdb": "workspace:*",
+    "better-sqlite3": "^11.0.0",
+    "tinybench": "^2.6.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0",
+    "@types/node": "^20.12.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.4.0"
+  }
+}

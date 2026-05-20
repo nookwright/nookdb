@@ -1,0 +1,66 @@
+---
+title: Migrating from sehawq.db v5
+description: A 50-line manual migration script — no CLI, no auto-import.
+---
+
+## Why is there no automated importer?
+
+The earlier plan was to ship a `nookdb import --from sehawq-v5` CLI command. That plan was withdrawn during the M5a brainstorm (2026-05-20). Two reasons:
+
+1. **Adoption signal:** sehawq.db v5 has ~9 NPM downloads per week. Multiple weeks of engineering investment is hard to justify against that baseline.
+2. **Positioning:** nookdb is a *spiritual successor*, not a drop-in upgrade. A polished one-command importer would suggest otherwise; a short documented script is honest about the scope shift.
+
+The PRD §11 revised text and this page replace the original importer plan.
+
+## What's different
+
+| sehawq.db v5 | nookdb |
+| ------------ | ------ |
+| Single-file JSON + `.log` append | redb (Rust, ACID) single file |
+| No schema | Schema-first; types and validation are first-class |
+| Built-in REST API server | Not shipped (out of scope for v1) |
+| Built-in admin dashboard | Not shipped |
+| Server-to-server replication | Not shipped (CRDT/sync may come in v2) |
+| GDPR helpers / audit log | Not shipped |
+| Webhook subsystem | Not shipped |
+
+If you depended on any of the "not shipped" features, nookdb is not a drop-in replacement. Stay on sehawq.db v5 or pick a different tool.
+
+## Manual migration
+
+The repo ships a 50-line conversion script at [`examples/migrate-from-sehawq-v5/`](https://github.com/omerarslan0/nookdb/tree/main/examples/migrate-from-sehawq-v5). It expects a v5 JSON export with the most common shape:
+
+```json
+{
+  "version": 5,
+  "data": {
+    "users::alice": { "id": "alice", "name": "Alice" },
+    "posts::p1":    { "id": "p1", "authorId": "alice" }
+  }
+}
+```
+
+Usage:
+
+```bash
+tsx convert.ts ./sehawq.json ./your-schema.ts ./out.db
+```
+
+Your `your-schema.ts` must export a default schema whose collection names match the key prefixes (`users`, `posts` in the example above).
+
+## Limitations
+
+- The `.log` (WAL) file is **not** replayed. If you have unflushed writes in `.log`, run sehawq.db v5 one last time to flush, then export.
+- No schema inference. You must supply a schema with the expected fields.
+- Records that fail schema validation are skipped (with a count reported at the end).
+- The script writes through `nookdb`'s public `db[coll].insert(...)` API, so secondary indexes are built incrementally — there is no separate reindex step.
+
+## Disposing of v5
+
+Once your data is in nookdb, mark the old package deprecated on NPM:
+
+```bash
+npm deprecate sehawq.db "Successor: nookdb. See https://nookdb.pages.dev/guides/migrating-from-sehawq-v5/"
+```
+
+Keep the old package published indefinitely for archival reasons; only the deprecation notice is needed.
