@@ -1,0 +1,26 @@
+{
+  "name": "@nookdb/binding",
+  "version": "0.0.1",
+  "description": "NAPI-rs binding for nookdb-core (internal build artifact).",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "napi": {
+    "binaryName": "nookdb-binding",
+    "triples": {
+      "defaults": false,
+      "additional": []
+    }
+  },
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "node": ">= 20"
+  },
+  "scripts": {
+    "build": "napi build --platform --release --js index.js --dts index.d.ts",
+    "build:debug": "napi build --platform --js index.js --dts index.d.ts"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^3.0.0"
+  }
+}

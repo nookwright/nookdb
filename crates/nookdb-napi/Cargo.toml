@@ -1,0 +1,35 @@
+[package]
+name = "nookdb-napi"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "NAPI-rs binding for nookdb-core."
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+nookdb-core = { path = "../nookdb-core" }
+napi = { version = "3", default-features = false, features = ["napi8", "tokio_rt"] }
+napi-derive = "3"
+tokio = { version = "1", default-features = false, features = ["rt-multi-thread"] }
+serde_json = "1"
+
+[build-dependencies]
+napi-build = "2"
+
+[lints.rust]
+# napi-derive macro expansion emits allow(unsafe_code); override workspace forbid here only
+unsafe_code = "allow"
+unused_imports = "warn"
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+missing_docs_in_private_items = "allow"
+module_name_repetitions = "allow"
+# napi-derive emits some clippy-noisy code we don't control
+new_without_default = "allow"
