@@ -53,3 +53,16 @@ lcov.info
 
 # Misc
 *.log
+
+# Public-repo safety — NEVER push to the public remote
+# These are internal-only artifacts that exist in the development/scratch repo
+# but must not leak here. This is a hard-stop defense beyond the pre-push audit
+# checklist; if a future contributor (or agent) re-syncs from the private repo
+# and forgets to exclude these, .gitignore catches them at staging time.
+PRD.md
+CLAUDE.md
+AGENTS.md
+GEMINI.md
+docs/superpowers/
+.claude/
+.superpowers/
