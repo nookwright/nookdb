@@ -24,14 +24,6 @@
       "x86_64-pc-windows-msvc"
     ]
   },
-  "optionalDependencies": {
-    "@nookdb/binding-darwin-x64": "0.0.1",
-    "@nookdb/binding-darwin-arm64": "0.0.1",
-    "@nookdb/binding-linux-x64-gnu": "0.0.1",
-    "@nookdb/binding-linux-arm64-gnu": "0.0.1",
-    "@nookdb/binding-linux-x64-musl": "0.0.1",
-    "@nookdb/binding-win32-x64-msvc": "0.0.1"
-  },
   "scripts": {
     "build": "napi build --platform --release --js index.js --dts index.d.ts",
     "build:debug": "napi build --platform --js index.js --dts index.d.ts",
