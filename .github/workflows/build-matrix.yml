@@ -88,9 +88,10 @@ jobs:
 
       - name: Smoke import (host-compatible targets only)
         if: matrix.target == 'x86_64-unknown-linux-gnu' || matrix.target == 'x86_64-apple-darwin' || matrix.target == 'aarch64-apple-darwin' || matrix.target == 'x86_64-pc-windows-msvc'
+        shell: bash
         run: |
           pnpm build:ts
-          node -e "const { open, s } = require('./packages/nookdb/dist/index.cjs'); (async () => { const db = await open(require('path').join(require('os').tmpdir(), 'nook-smoke-' + Date.now() + '.db'), { schema: { items: s.collection({ id: s.id(), v: s.number() }) } }); await db.items.insert({ id: 'a', v: 1 }); const all = await db.items.find({}); if (all.length !== 1) { process.exit(1); } db.close(); console.log('smoke OK'); })().catch(e => { console.error(e); process.exit(1); });"
+          node scripts/smoke-import.mjs
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
