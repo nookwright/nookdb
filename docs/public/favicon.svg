@@ -1,4 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
-  <rect width="32" height="32" rx="6" fill="#3B82F6"/>
-  <text x="16" y="22" font-size="18" text-anchor="middle" font-family="ui-monospace" fill="white" font-weight="700">N</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <!-- NookDB favicon. Matte black tile + cream n-mark with data-stack lines.
+       Background matches icon.svg (#0B0A09, the site bg palette token) so the
+       favicon and the social/avatar icon read as one identity. -->
+
+  <rect width="48" height="48" fill="#0B0A09" />
+
+  <g stroke="#F2EFEA" stroke-linecap="round" stroke-linejoin="round" stroke-width="4">
+    <path d="M10 10 L10 38" />
+    <path d="M10 17 C10 11 20 10 26 16 L26 28 C26 33 30 34 34 34" />
+    <path d="M34 34 L34 38" />
+    <line x1="18" y1="24" x2="29" y2="24" stroke-width="2.5" />
+    <line x1="18" y1="29" x2="27" y2="29" stroke-width="2.5" />
+    <line x1="18" y1="34" x2="25" y2="34" stroke-width="2.5" opacity="0.6" />
+  </g>
 </svg>
