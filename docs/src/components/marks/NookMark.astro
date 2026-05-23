@@ -1,0 +1,32 @@
+---
+interface Props {
+  size?: number;
+  class?: string;
+  stroke?: string;
+}
+const { size = 48, class: className, stroke = 'currentColor' } = Astro.props;
+---
+
+<svg
+  viewBox="0 0 48 48"
+  fill="none"
+  stroke={stroke}
+  stroke-width="4"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  width={size}
+  height={size}
+  class={className}
+>
+  <!-- Left vertical stroke of the n -->
+  <path d="M10 10 L10 38" />
+  <!-- Shoulder arc from left leg top, curves over and down; right leg bends inward
+       creating the nook cavity, then exits right at the baseline area -->
+  <path d="M10 17 C10 11 20 10 26 16 L26 28 C26 33 30 34 34 34" />
+  <!-- Right leg descends from the cavity exit point -->
+  <path d="M34 34 L34 38" />
+  <!-- Data-stack glyph inside the nook cavity: three horizontal lines, decreasing width -->
+  <line x1="18" y1="24" x2="29" y2="24" stroke-width="2.5" stroke-linecap="round" />
+  <line x1="18" y1="29" x2="27" y2="29" stroke-width="2.5" stroke-linecap="round" />
+  <line x1="18" y1="34" x2="25" y2="34" stroke-width="2.5" stroke-linecap="round" opacity="0.6" />
+</svg>

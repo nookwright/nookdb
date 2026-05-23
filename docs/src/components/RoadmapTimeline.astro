@@ -1,0 +1,321 @@
+---
+/**
+ * RoadmapTimeline — PARKED component (not imported anywhere as of 2026-05-23).
+ *
+ * Built as a pre-launch trust signal ("M0–M5 shipped, M6 in progress")
+ * but the site is going public AFTER M6 lands — by then "one left" is a
+ * lie and a frozen "all done" version ages poorly. Removed from the
+ * landing on 2026-05-23. Kept in tree so the design can be revived as a
+ * FORWARD-LOOKING roadmap post-1.0 (rewire `milestones` to v1.x / v2.x
+ * items with concrete or rough ETAs).
+ *
+ * To revive:
+ * 1. Update the `milestones` array below with post-1.0 items
+ * 2. Update the heading copy ("Six milestones shipped. One left.")
+ * 3. Re-add `<RoadmapTimeline />` import + placement in pages/index.astro
+ * 4. Re-add `.roadmap` to the content-visibility list in animations.css
+ *
+ * Source of truth (historical): PRD §12 milestone table.
+ */
+interface Milestone {
+  id: string;
+  label: string;
+  status: 'done' | 'now' | 'planned';
+}
+
+const milestones: Milestone[] = [
+  { id: 'M0', label: 'foundation',     status: 'done' },
+  { id: 'M1', label: 'storage',        status: 'done' },
+  { id: 'M2', label: 'schema',         status: 'done' },
+  { id: 'M3', label: 'reactive',       status: 'done' },
+  { id: 'M4', label: 'bridge',         status: 'done' },
+  { id: 'M5', label: 'CLI · docs · beta', status: 'done' },
+  { id: 'M6', label: '1.0 GA',         status: 'now' },
+];
+
+const totalDots = milestones.length;
+const doneCount = milestones.filter((m) => m.status === 'done').length;
+const progressPct = (doneCount / (totalDots - 1)) * 100;
+---
+
+<section class="roadmap section-reveal reveal-stagger" aria-labelledby="roadmap-heading">
+  <div class="roadmap__inner">
+    <header class="roadmap__head reveal-item" style="--rev-i: 0">
+      <span class="roadmap__kicker">building in public</span>
+      <h2 class="roadmap__heading" id="roadmap-heading">
+        Six milestones shipped. <span class="roadmap__heading--now">One left.</span>
+      </h2>
+    </header>
+
+    <div class="roadmap__track reveal-item" style="--rev-i: 1">
+      <!-- Background rail (full width) -->
+      <div class="roadmap__rail" aria-hidden="true"></div>
+      <!-- Progress fill: mint fills from left up to the last done milestone -->
+      <div
+        class="roadmap__rail-fill"
+        aria-hidden="true"
+        style={`width: ${progressPct.toFixed(2)}%`}
+      ></div>
+
+      <ol class="roadmap__dots" role="list">
+        {milestones.map((m, i) => (
+          <li
+            class={`roadmap__dot roadmap__dot--${m.status}`}
+            style={`--dot-i: ${i}`}
+            aria-label={`${m.id} ${m.label} — ${
+              m.status === 'done' ? 'done' : m.status === 'now' ? 'in progress' : 'planned'
+            }`}
+          >
+            <span class="roadmap__mark" aria-hidden="true">
+              {m.status === 'done' && <svg class="roadmap__check" viewBox="0 0 10 10" width="10" height="10"><path d="M2 5 L4.2 7.2 L8 3.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>}
+              {m.status === 'now'  && <span class="roadmap__pulse"></span>}
+            </span>
+            <span class="roadmap__id">{m.id}</span>
+            <span class="roadmap__label">{m.label}</span>
+          </li>
+        ))}
+      </ol>
+    </div>
+
+    <p class="roadmap__caption reveal-item" style="--rev-i: 2">
+      <span class="roadmap__caption-num">{doneCount}/{totalDots}</span>
+      milestones complete · v0.x stable today · 1.0 ships when M6 is signed off
+      &middot;
+      <a class="roadmap__link" href="/architecture/overview/">read the architecture →</a>
+    </p>
+  </div>
+</section>
+
+<style>
+  /* ── Section shell ───────────────────────────────────────────────── */
+  .roadmap {
+    padding: 88px 24px;
+    border-top: 1px solid var(--border-subtle);
+    border-bottom: 1px solid var(--border-subtle);
+    background: linear-gradient(
+      180deg,
+      transparent 0%,
+      rgba(168, 201, 127, 0.015) 50%,
+      transparent 100%
+    );
+  }
+
+  .roadmap__inner {
+    max-width: 1040px;
+    margin: 0 auto;
+  }
+
+  /* ── Heading ─────────────────────────────────────────────────────── */
+  .roadmap__head {
+    text-align: center;
+    margin: 0 0 56px;
+  }
+  .roadmap__kicker {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    color: var(--text-caption);
+    margin-bottom: 12px;
+  }
+  .roadmap__heading {
+    font-family: var(--font-sans);
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+  .roadmap__heading--now {
+    color: var(--mint);
+  }
+
+  /* ── Track ───────────────────────────────────────────────────────── */
+  .roadmap__track {
+    position: relative;
+    padding: 14px 24px 0;
+  }
+
+  /* full-width hairline beneath all dots */
+  .roadmap__rail {
+    position: absolute;
+    top: 23px;
+    left: 24px;
+    right: 24px;
+    height: 1px;
+    background: var(--border-default);
+    opacity: 0.45;
+  }
+  /* progress fill — mint, fades-in from left */
+  .roadmap__rail-fill {
+    position: absolute;
+    top: 22px;
+    left: 24px;
+    height: 3px;
+    background: linear-gradient(
+      to right,
+      rgba(168, 201, 127, 0) 0%,
+      rgba(168, 201, 127, 0.55) 8%,
+      var(--mint) 100%
+    );
+    box-shadow: 0 0 8px rgba(168, 201, 127, 0.4);
+    border-radius: 2px;
+    transform-origin: left;
+    /* reveal: width animates from 0 to its computed value when section is visible */
+    transform: scaleX(0);
+    transition: transform 1100ms var(--ease-reveal) 320ms;
+  }
+  .section-reveal.is-visible .roadmap__rail-fill {
+    transform: scaleX(1);
+  }
+
+  /* ── Dots ────────────────────────────────────────────────────────── */
+  .roadmap__dots {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    position: relative;
+  }
+  .roadmap__dot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    /* Stagger reveal of each dot atop the rail-fill sweep */
+    opacity: 0;
+    transform: translateY(6px);
+    animation: roadmap-dot-in 480ms var(--ease-reveal) both;
+    animation-delay: calc(400ms + var(--dot-i, 0) * 130ms);
+  }
+  .section-reveal:not(.is-visible) .roadmap__dot {
+    animation: none;
+    opacity: 0;
+  }
+  @keyframes roadmap-dot-in {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* the mark sits on the rail */
+  .roadmap__mark {
+    position: relative;
+    z-index: 1;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    box-sizing: border-box;
+  }
+
+  .roadmap__dot--done .roadmap__mark {
+    background: var(--mint);
+    color: var(--bg);
+    box-shadow: 0 0 10px rgba(168, 201, 127, 0.4);
+  }
+  .roadmap__check { display: block; }
+
+  .roadmap__dot--now .roadmap__mark {
+    background: var(--bg);
+    border: 2px solid var(--mint);
+    box-shadow: 0 0 0 4px rgba(168, 201, 127, 0.08);
+  }
+  .roadmap__pulse {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--mint);
+    box-shadow: 0 0 8px var(--mint);
+    animation: roadmap-pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes roadmap-pulse {
+    0%, 100% { opacity: 1;    transform: scale(1); }
+    50%      { opacity: 0.35; transform: scale(0.6); }
+  }
+
+  .roadmap__dot--planned .roadmap__mark {
+    background: var(--bg);
+    border: 1px dashed var(--border-default);
+  }
+
+  /* labels under each dot */
+  .roadmap__id {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: 0.04em;
+  }
+  .roadmap__dot--now .roadmap__id {
+    color: var(--mint);
+  }
+  .roadmap__label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+    text-align: center;
+    line-height: 1.45;
+    max-width: 14ch;
+  }
+
+  /* ── Caption ─────────────────────────────────────────────────────── */
+  .roadmap__caption {
+    margin: 40px auto 0;
+    max-width: 720px;
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+    line-height: 1.7;
+  }
+  .roadmap__caption-num {
+    color: var(--text-primary);
+    font-weight: 600;
+    margin-right: 4px;
+  }
+  .roadmap__link {
+    color: var(--text-secondary);
+    text-decoration: underline;
+    text-decoration-color: var(--border-default);
+    text-underline-offset: 3px;
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+  .roadmap__link:hover { color: var(--accent); }
+
+  /* ── Reduced motion ──────────────────────────────────────────────── */
+  @media (prefers-reduced-motion: reduce) {
+    .roadmap__rail-fill,
+    .roadmap__dot,
+    .roadmap__pulse { transition: none; animation: none; opacity: 1; transform: none; }
+    .section-reveal.is-visible .roadmap__rail-fill { transform: scaleX(1); }
+  }
+
+  /* ── Responsive ──────────────────────────────────────────────────── */
+  @media (max-width: 760px) {
+    .roadmap { padding: 72px 16px; }
+    .roadmap__heading { font-size: 22px; }
+    .roadmap__track { padding: 14px 8px 0; }
+    .roadmap__rail,
+    .roadmap__rail-fill { left: 8px; right: 8px; }
+    .roadmap__rail-fill { right: auto; }
+    .roadmap__label { font-size: 9px; max-width: 10ch; }
+  }
+
+  /* very narrow: collapse labels under each dot to id-only */
+  @media (max-width: 480px) {
+    .roadmap__label { display: none; }
+    .roadmap__id { font-size: 10px; }
+  }
+</style>
+
+<script>
+  import '../scripts/reveal.ts';
+</script>

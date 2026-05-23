@@ -1,0 +1,245 @@
+---
+/**
+ * Slimmed-down architecture diagram intended to be embedded inside
+ * Starlight MDX docs (e.g. /architecture/overview/). Lifts the SVG +
+ * hover interactivity + flow pulses from the landing's ArchitectureDiagram
+ * but drops the section heading, marketing caption, and CTA link — those
+ * belong to the marketing surface, not the canonical docs page.
+ *
+ * Brand tokens (mint, bg-elevated, font-mono…) are made available on docs
+ * pages via starlight-overrides.css.
+ */
+---
+
+<figure class="archd" role="img" aria-label="NookDB architecture diagram. Top row: nookdb-core (Rust + redb), nookdb-napi (NAPI binding), @nookdb/electron (TS surface). Middle row: Electron main process. Bottom row: two renderer processes. Arrows flow from the Rust core through the binding to the surface, then down into the Electron main process and out to the renderers.">
+  <svg
+    viewBox="0 0 880 540"
+    xmlns="http://www.w3.org/2000/svg"
+    class="archd__svg"
+    aria-hidden="true"
+    focusable="false"
+  >
+    <defs>
+      <marker id="archd-arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
+        <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)" />
+      </marker>
+    </defs>
+
+    <!-- ── Row 1 ───────────────────────────────────────────────── -->
+    <g class="archd__box">
+      <rect x="40"  y="40" width="200" height="80" rx="8" class="archd__rect" />
+      <text x="140" y="76"  class="archd__label-main" text-anchor="middle">nookdb-core</text>
+      <text x="140" y="95"  class="archd__label-sub"  text-anchor="middle">(Rust + redb 2.x)</text>
+    </g>
+
+    <g class="archd__box">
+      <rect x="340" y="40" width="200" height="80" rx="8" class="archd__rect" />
+      <text x="440" y="76"  class="archd__label-main" text-anchor="middle">nookdb-napi</text>
+      <text x="440" y="95"  class="archd__label-sub"  text-anchor="middle">(NAPI binding)</text>
+    </g>
+
+    <g class="archd__box">
+      <rect x="640" y="40" width="200" height="80" rx="8" class="archd__rect" />
+      <text x="740" y="76"  class="archd__label-main" text-anchor="middle">@nookdb/electron</text>
+      <text x="740" y="95"  class="archd__label-sub"  text-anchor="middle">(TS surface)</text>
+    </g>
+
+    <!-- ── Row 2 ───────────────────────────────────────────────── -->
+    <g class="archd__box">
+      <rect x="340" y="220" width="200" height="80" rx="8" class="archd__rect" />
+      <text x="440" y="256" class="archd__label-main" text-anchor="middle">Electron main</text>
+      <text x="440" y="275" class="archd__label-sub"  text-anchor="middle">(process)</text>
+    </g>
+
+    <!-- ── Row 3 ───────────────────────────────────────────────── -->
+    <g class="archd__box">
+      <rect x="180" y="420" width="200" height="80" rx="8" class="archd__rect archd__rect--renderer" />
+      <text x="280" y="456" class="archd__label-main" text-anchor="middle">Renderer #1</text>
+      <text x="280" y="475" class="archd__label-sub"  text-anchor="middle">(process)</text>
+    </g>
+
+    <g class="archd__box">
+      <rect x="500" y="420" width="200" height="80" rx="8" class="archd__rect archd__rect--renderer" />
+      <text x="600" y="456" class="archd__label-main" text-anchor="middle">Renderer #2</text>
+      <text x="600" y="475" class="archd__label-sub"  text-anchor="middle">(process)</text>
+    </g>
+
+    <!-- ── Arrows ──────────────────────────────────────────────── -->
+    <line x1="240" y1="80"  x2="334" y2="80"  class="archd__arrow" marker-end="url(#archd-arrow)" />
+    <text x="290" y="68"  class="archd__arrow-label" text-anchor="middle">spawn_blocking</text>
+
+    <line x1="540" y1="80"  x2="634" y2="80"  class="archd__arrow" marker-end="url(#archd-arrow)" />
+    <text x="587" y="68"  class="archd__arrow-label" text-anchor="middle">JS surface</text>
+
+    <line x1="740" y1="120" x2="546" y2="214" class="archd__arrow" marker-end="url(#archd-arrow)" />
+    <text x="660" y="163" class="archd__arrow-label" text-anchor="middle" transform="rotate(-28, 660, 163)">live() / insert()</text>
+
+    <line x1="420" y1="300" x2="292" y2="414" class="archd__arrow" marker-end="url(#archd-arrow)" />
+    <text x="338" y="349" class="archd__arrow-label" text-anchor="middle" transform="rotate(-40, 338, 349)">broadcast</text>
+
+    <line x1="460" y1="300" x2="590" y2="414" class="archd__arrow" marker-end="url(#archd-arrow)" />
+
+    <!-- ── Flow pulses (mint dots, staggered) ──────────────────── -->
+    <g class="archd__flow" aria-hidden="true">
+      <circle r="3.2" class="archd__flow-dot">
+        <animateMotion dur="1.3s" begin="0s"    repeatCount="indefinite" path="M240,80 L334,80" />
+      </circle>
+      <circle r="3.2" class="archd__flow-dot">
+        <animateMotion dur="1.3s" begin="0.45s" repeatCount="indefinite" path="M540,80 L634,80" />
+      </circle>
+      <circle r="3.2" class="archd__flow-dot">
+        <animateMotion dur="1.5s" begin="0.9s"  repeatCount="indefinite" path="M740,120 L546,214" />
+      </circle>
+      <circle r="3.2" class="archd__flow-dot">
+        <animateMotion dur="1.5s" begin="1.4s"  repeatCount="indefinite" path="M420,300 L292,414" />
+      </circle>
+      <circle r="3.2" class="archd__flow-dot">
+        <animateMotion dur="1.5s" begin="1.4s"  repeatCount="indefinite" path="M460,300 L590,414" />
+      </circle>
+    </g>
+  </svg>
+
+  <figcaption class="archd__cap">
+    Hover any box to isolate it. <code>tokio::task::spawn_blocking</code> bridges sync redb storage to JS async; errors are reshaped at each boundary with a <code>[kind] message</code> prefix.
+  </figcaption>
+</figure>
+
+<style>
+  /* ── Frame ───────────────────────────────────────────────────── */
+  .archd {
+    position: relative;
+    margin: 1.75em auto 2em;
+    max-width: 880px;
+    padding: 18px 16px 14px;
+    background: var(--bg-code);
+    border: 1px solid var(--border-default);
+    border-radius: 10px;
+    overflow: hidden;
+    isolation: isolate;
+  }
+  /* lamp glow behind the Rust origin */
+  .archd::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 4%;
+    width: 30%;
+    height: 38%;
+    background: radial-gradient(circle, var(--lamp-glow-color) 0%, transparent 64%);
+    opacity: 0.07;
+    filter: blur(26px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .archd__svg {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: auto;
+    display: block;
+    overflow: visible;
+  }
+
+  /* ── Boxes ───────────────────────────────────────────────────── */
+  .archd__rect {
+    fill: var(--bg-elevated);
+    stroke: currentColor;
+    stroke-width: 1.5;
+    opacity: 0.9;
+    transition:
+      opacity calc(var(--motion-dur) * 1.2) var(--ease-out),
+      stroke calc(var(--motion-dur) * 1.2) var(--ease-out);
+  }
+  .archd__rect--renderer {
+    fill: var(--bg-code);
+    stroke: var(--border-default);
+  }
+
+  .archd__box { cursor: pointer; }
+
+  /* hover: dim siblings, isolate target */
+  .archd__svg:hover .archd__box,
+  .archd__svg:hover .archd__arrow,
+  .archd__svg:hover .archd__arrow-label { opacity: 0.35; }
+
+  .archd__svg .archd__box:hover .archd__rect,
+  .archd__svg .archd__arrow:hover {
+    opacity: 1;
+    stroke: var(--text-primary);
+  }
+  .archd__svg .archd__box:hover { opacity: 1; }
+  .archd__svg .archd__box:hover .archd__label-main,
+  .archd__svg .archd__box:hover .archd__label-sub { fill: var(--text-primary); }
+
+  .archd__box,
+  .archd__arrow,
+  .archd__arrow-label {
+    transition: opacity calc(var(--motion-dur) * 1.2) var(--ease-out);
+  }
+
+  /* ── Labels ──────────────────────────────────────────────────── */
+  .archd__label-main {
+    font-family: var(--font-mono);
+    font-size: 16px;
+    font-weight: 500;
+    fill: var(--text-primary);
+  }
+  .archd__label-sub {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    fill: var(--text-muted);
+  }
+
+  /* ── Arrows ──────────────────────────────────────────────────── */
+  .archd__arrow {
+    stroke: var(--accent);
+    stroke-width: 1.5;
+    fill: none;
+  }
+  .archd__arrow-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    fill: var(--text-muted);
+  }
+
+  /* ── Flow pulses ─────────────────────────────────────────────── */
+  .archd__flow-dot {
+    fill: var(--mint);
+    filter: drop-shadow(0 0 4px var(--mint));
+  }
+
+  /* ── Caption ─────────────────────────────────────────────────── */
+  .archd__cap {
+    position: relative;
+    z-index: 1;
+    margin: 12px 8px 0;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-muted);
+    text-align: center;
+  }
+  .archd__cap code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-secondary);
+    background: var(--accent-subtle);
+    padding: 1px 5px;
+    border-radius: var(--r-sm);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .archd__rect,
+    .archd__box,
+    .archd__arrow,
+    .archd__arrow-label { transition: none; }
+    .archd__flow { display: none; }
+  }
+
+  @media (max-width: 600px) {
+    .archd { padding: 12px 10px 10px; margin: 1.25em auto 1.5em; }
+    .archd__label-main { font-size: 13px; }
+    .archd__label-sub  { font-size: 10px; }
+    .archd__arrow-label { font-size: 10px; }
+  }
+</style>

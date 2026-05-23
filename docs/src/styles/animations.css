@@ -1,0 +1,123 @@
+/* Hero schema → types reveal.
+ *
+ * The animation runs once per session — see hero-replay-gate.ts.
+ * On first visit, the script removes the `is-static` class from <html>
+ * and the keyframes below execute. On subsequent visits, `is-static`
+ * stays on and the @media reduced-motion-style "skip" branch applies.
+ *
+ * Cursor blink is independent and loops indefinitely regardless of
+ * the one-shot reveal.
+ */
+
+@keyframes hero-fade-in {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes hero-cursor-blink {
+  0%, 50%   { background: var(--accent); color: var(--bg); }
+  50.01%, 100% { background: transparent; color: inherit; }
+}
+
+/* Default: animation enabled. The script removes is-static after first
+ * load and sets is-animate, but for the *very first paint* on first
+ * visit, we keep the content hidden until JS confirms the animation
+ * should run, to avoid flash. */
+html:not(.is-static):not(.is-animate) .hero__code-card * {
+  opacity: 0;
+}
+
+/* Animated branch: stagger reveals after first visit. */
+html.is-animate .hero__file-tab        { animation: hero-fade-in 400ms var(--ease-out) 0ms    both; }
+html.is-animate .hero__code:first-of-type { animation: hero-fade-in 600ms var(--ease-out) 200ms  both; }
+html.is-animate .hero__divider         { animation: hero-fade-in 400ms var(--ease-out) 2200ms both; }
+html.is-animate .hero__divider-label   { animation: hero-fade-in 400ms var(--ease-out) 2400ms both; }
+html.is-animate .hero__code:last-of-type { animation: hero-fade-in 500ms var(--ease-out) 2600ms both; }
+
+/* Static branch: every element visible at final state, no animation. */
+html.is-static .hero__code-card * {
+  opacity: 1;
+}
+
+/* Cursor blink loops always (cheap, both branches). */
+.t-cursor {
+  animation: hero-cursor-blink 1s steps(1) infinite;
+}
+
+/* Reduced-motion accessibility — global handled in tokens.css but we
+ * defensively also gate the cursor here for visible epileptic safety. */
+@media (prefers-reduced-motion: reduce) {
+  .t-cursor { animation: none; }
+  html.is-animate .hero__code-card * {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* Scroll-fade-up reveals — sections glide up into place as they enter view. */
+@keyframes section-fade-up {
+  0%   { opacity: 0; transform: translateY(28px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.section-reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  /* hint the compositor so the glide stays on the GPU and doesn't jank */
+  will-change: opacity, transform;
+}
+
+.section-reveal.is-visible {
+  animation: section-fade-up var(--dur-reveal) var(--ease-reveal) both;
+}
+
+/* ── Staggered children ───────────────────────────────────────────────
+ * A section can opt out of moving as one block (.reveal-stagger) and instead
+ * let its .reveal-item children glide in one after another. Each item sets its
+ * order with --rev-i (0, 1, 2…); the cascade reads as the widgets assembling
+ * themselves rather than the whole panel popping at once. */
+.section-reveal.reveal-stagger {
+  opacity: 1;
+  transform: none;
+  animation: none;
+  will-change: auto;
+}
+
+.reveal-stagger .reveal-item {
+  opacity: 0;
+  transform: translateY(24px);
+  will-change: opacity, transform;
+}
+
+.reveal-stagger.is-visible .reveal-item {
+  animation: section-fade-up var(--dur-reveal) var(--ease-reveal) both;
+  animation-delay: calc(var(--rev-i, 0) * 90ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal-stagger .reveal-item {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+}
+
+/* ── Scroll performance ───────────────────────────────────────────────
+ * Long page: skip layout/paint for sections that aren't near the viewport,
+ * which also pauses their off-screen animations. Excludes the hero's sticky
+ * neighbours and the scrollytelling story-card slots (size containment would
+ * break position: sticky). contain-intrinsic-size: auto remembers each
+ * section's real height after first render, so the scrollbar stays stable. */
+.stats-band,
+.explorer,
+.ai,
+.arch,
+.dura,
+.mig,
+.when,
+.benchmarks,
+.faq,
+.install-cta {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 600px;
+}

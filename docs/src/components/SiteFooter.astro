@@ -1,0 +1,184 @@
+---
+import { copy } from '../lib/copy.ts';
+import { getLatestCommits } from '../lib/build-log.ts';
+import WordmarkLockup from './WordmarkLockup.astro';
+
+const commits = await getLatestCommits();
+const hasCommits = commits.length > 0;
+---
+
+<footer class="site-footer">
+  <div class={`site-footer__inner ${hasCommits ? '' : 'site-footer__inner--single'}`}>
+    <div class="site-footer__brand">
+      <WordmarkLockup size="sm" />
+      <p class="site-footer__family-note">
+        nookdb is a Nookwright product. <span class="site-footer__family-note-future">nookjs, nooksecurity coming.</span>
+      </p>
+      <ul class="site-footer__links">
+        {copy.footer.links.map((link) => (
+          <li><a href={link.href}>{link.label}</a></li>
+        ))}
+      </ul>
+    </div>
+
+    {hasCommits && (
+      <div class="site-footer__build-log">
+        <h3 class="site-footer__heading">{copy.footer.buildLogHeading}</h3>
+        <ul class="site-footer__commits">
+          {commits.map((c) => (
+            <li class="site-footer__commit">
+              <a
+                href={`https://github.com/nookwright/nookdb/commit/${c.sha}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <time datetime={c.date}>{new Date(c.date).toISOString().slice(0, 10)}</time>
+                <span class="site-footer__commit-message">— {c.message}</span>
+                <span class="site-footer__commit-sha">·{c.shortSha}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    )}
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    border-top: 1px solid var(--border-subtle);
+    padding: 64px 24px;
+    color: var(--text-muted);
+  }
+
+  .site-footer__inner {
+    max-width: var(--max-content-width, 1120px);
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 64px;
+    align-items: start;
+  }
+
+  .site-footer__inner--single {
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
+
+  /* ─── Brand column ─────────────────────────────────────────────────────────── */
+  .site-footer__brand {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .site-footer__family-note {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--text-muted);
+    margin: 20px 0 0 0;
+    line-height: 1.55;
+    max-width: 480px;
+  }
+
+  .site-footer__family-note-future {
+    color: var(--text-caption);
+    opacity: 0.75;
+  }
+
+  .site-footer__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    list-style: none;
+    padding: 0;
+    margin: 20px 0 0 0;
+  }
+
+  .site-footer__links a {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color var(--dur-fast, 120ms) var(--ease-out, ease);
+  }
+
+  .site-footer__links a:hover {
+    color: var(--text-primary);
+  }
+
+  /* ─── Build-log column ─────────────────────────────────────────────────────── */
+  .site-footer__heading {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin: 0 0 12px 0;
+  }
+
+  .site-footer__commits {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .site-footer__commit {
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .site-footer__commit:last-child {
+    border-bottom: none;
+  }
+
+  .site-footer__commit a {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px;
+    padding: 6px 0;
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: color var(--dur-fast, 120ms) var(--ease-out, ease);
+  }
+
+  .site-footer__commit a:hover {
+    color: var(--accent);
+  }
+
+  .site-footer__commit time {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .site-footer__commit-message {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: inherit;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .site-footer__commit-sha {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    opacity: 0.7;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* ─── Responsive ───────────────────────────────────────────────────────────── */
+  @media (max-width: 880px) {
+    .site-footer__inner {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

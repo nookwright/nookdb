@@ -1,0 +1,462 @@
+---
+import { copy } from '../lib/copy';
+import results from '../../../benchmarks/results.json';
+
+// ---------------------------------------------------------------------------
+// Data extraction helpers
+// ---------------------------------------------------------------------------
+
+interface BarMetric {
+  label: string;
+  /** "↑ higher is better" / "↓ lower is better" chip text */
+  direction: 'higher' | 'lower';
+  nookdbValue: number | null;
+  bsqlValue: number | null;
+  unit: string;
+  /** which side actually "wins" — drives mint-vs-grey accent on the wider bar */
+  winner: 'nookdb' | 'bsql' | null;
+  /** formatted display strings — null means placeholder "—" */
+  nookdbDisplay: string | null;
+  bsqlDisplay: string | null;
+}
+
+type ResultsJson = typeof results;
+
+/**
+ * Find the first row matching a name fragment within a specific case.
+ * Returns null if not found (resilience: never throws).
+ */
+function findRow(
+  data: ResultsJson,
+  caseKey: string,
+  seed: number,
+  nameFrag: string,
+): { hz: number; meanMs: number } | null {
+  try {
+    const block = data.results.find(
+      (r) => r.case === caseKey && r.seed === seed,
+    );
+    if (!block) return null;
+    const row = block.rows.find((r) => r.name.includes(nameFrag));
+    return row ? { hz: row.hz, meanMs: row.meanMs } : null;
+  } catch {
+    return null;
+  }
+}
+
+function chooseWinner(
+  a: number | null,
+  b: number | null,
+  higherIsBetter: boolean,
+): 'nookdb' | 'bsql' | null {
+  if (a == null || b == null) return null;
+  if (a === b) return null;
+  if (higherIsBetter) return a > b ? 'nookdb' : 'bsql';
+  return a < b ? 'nookdb' : 'bsql';
+}
+
+const fmtInt = (n: number) => Math.round(n).toLocaleString('en');
+const fmtMs = (n: number) => {
+  // 28.8 → "28.8", 208.85 → "209", 2791 → "2,791"
+  if (n < 100) return n.toFixed(1);
+  return Math.round(n).toLocaleString('en');
+};
+
+// ---------------------------------------------------------------------------
+// Metric A — writes/sec (NookDB wins; honest about why: fsync per commit)
+// ---------------------------------------------------------------------------
+const insertSeed = 1000;
+const nookInsert = findRow(results, 'insert', insertSeed, 'nookdb');
+const bsqlInsert = findRow(results, 'insert', insertSeed, 'better-sqlite3');
+
+const metricA: BarMetric = {
+  label: 'single insert · writes/sec',
+  direction: 'higher',
+  nookdbValue: nookInsert?.hz ?? null,
+  bsqlValue: bsqlInsert?.hz ?? null,
+  unit: 'writes/sec',
+  winner: chooseWinner(nookInsert?.hz ?? null, bsqlInsert?.hz ?? null, true),
+  nookdbDisplay: nookInsert ? fmtInt(nookInsert.hz) : null,
+  bsqlDisplay:   bsqlInsert ? fmtInt(bsqlInsert.hz) : null,
+};
+
+// ---------------------------------------------------------------------------
+// Metric B — indexed-read latency (NookDB LOSES; surfacing it is the point)
+// ---------------------------------------------------------------------------
+const nookFind = findRow(results, 'find', insertSeed, 'nookdb · find by indexed role');
+const bsqlFind = findRow(results, 'find', insertSeed, 'better-sqlite3 · by indexed role');
+
+const metricB: BarMetric = {
+  label: 'indexed lookup · ms/op',
+  direction: 'lower',
+  nookdbValue: nookFind?.meanMs ?? null,
+  bsqlValue: bsqlFind?.meanMs ?? null,
+  unit: 'ms',
+  winner: chooseWinner(nookFind?.meanMs ?? null, bsqlFind?.meanMs ?? null, false),
+  nookdbDisplay: nookFind ? fmtMs(nookFind.meanMs) : null,
+  bsqlDisplay:   bsqlFind ? fmtMs(bsqlFind.meanMs) : null,
+};
+
+const metrics: BarMetric[] = [metricA, metricB];
+
+// ---------------------------------------------------------------------------
+// Bar width normalisation
+// For each metric, the better-performing side renders as 100% width;
+// the other side is scaled proportionally so the visual gap matches reality.
+// ---------------------------------------------------------------------------
+function barWidths(
+  metric: BarMetric,
+): { nookdbPct: number; bsqlPct: number } {
+  const { nookdbValue, bsqlValue, direction } = metric;
+  if (nookdbValue == null || bsqlValue == null)
+    return { nookdbPct: 0, bsqlPct: 0 };
+
+  if (direction === 'higher') {
+    const max = Math.max(nookdbValue, bsqlValue);
+    if (max === 0) return { nookdbPct: 0, bsqlPct: 0 };
+    return {
+      nookdbPct: (nookdbValue / max) * 100,
+      bsqlPct:   (bsqlValue   / max) * 100,
+    };
+  }
+  // Lower-is-better: invert so the smaller value gets 100% (the winner).
+  const min = Math.min(nookdbValue, bsqlValue);
+  if (min === 0) return { nookdbPct: 0, bsqlPct: 0 };
+  return {
+    nookdbPct: (min / nookdbValue) * 100,
+    bsqlPct:   (min / bsqlValue)   * 100,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Machine info — derived from results.json so the footnote can never lie
+// ---------------------------------------------------------------------------
+const PLATFORM_LABEL: Record<string, string> = {
+  win32:  'Windows',
+  darwin: 'macOS',
+  linux:  'Linux',
+};
+const platform = PLATFORM_LABEL[results.machine.platform] ?? results.machine.platform;
+const arch = results.machine.arch;
+const node = results.machine.node;
+const benchDate = new Date(results.timestamp).toISOString().slice(0, 10);
+
+const c = copy.benchmarks;
+---
+
+<section class="benchmarks section-reveal" aria-labelledby="bench-heading">
+  <div class="benchmarks__inner">
+    <header class="benchmarks__head">
+      <h2 class="benchmarks__heading" id="bench-heading">{c.heading}</h2>
+      <p class="benchmarks__subhead">{c.subhead}</p>
+    </header>
+
+    <div class="benchmarks__bars">
+      {metrics.map((metric) => {
+        const { nookdbPct, bsqlPct } = barWidths(metric);
+        return (
+          <div class="bar-group" data-winner={metric.winner ?? 'none'}>
+            <div class="bar-group__label-row">
+              <span class="bar-group__label">{metric.label}</span>
+              <span class={`bar-group__dir bar-group__dir--${metric.direction}`}>
+                {metric.direction === 'higher' ? '↑ higher is better' : '↓ lower is better'}
+              </span>
+            </div>
+
+            <!-- NookDB row -->
+            <div class="bar-row" data-side="nookdb" data-win={metric.winner === 'nookdb' ? 'true' : 'false'}>
+              <span class="bar-row__name bar-row__name--nookdb">NookDB</span>
+              <div class="bar-row__track" role="presentation">
+                <div
+                  class="bar-row__fill bar-row__fill--nookdb"
+                  style={`width: ${nookdbPct.toFixed(2)}%`}
+                  aria-hidden="true"
+                ></div>
+              </div>
+              <span class="bar-row__value">
+                {metric.nookdbDisplay != null
+                  ? `${metric.nookdbDisplay} ${metric.unit}`
+                  : '—'}
+              </span>
+            </div>
+
+            <!-- better-sqlite3 row -->
+            <div class="bar-row" data-side="bsql" data-win={metric.winner === 'bsql' ? 'true' : 'false'}>
+              <span class="bar-row__name bar-row__name--bsql">better-sqlite3</span>
+              <div class="bar-row__track" role="presentation">
+                <div
+                  class="bar-row__fill bar-row__fill--bsql"
+                  style={`width: ${bsqlPct.toFixed(2)}%`}
+                  aria-hidden="true"
+                ></div>
+              </div>
+              <span class="bar-row__value">
+                {metric.bsqlDisplay != null
+                  ? `${metric.bsqlDisplay} ${metric.unit}`
+                  : '—'}
+              </span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+
+    <p class="benchmarks__tradeoff">{c.tradeoff}</p>
+
+    <p class="benchmarks__footnote">
+      <span class="benchmarks__footnote-prefix">{c.methodologyPrefix}</span>
+      <code class="benchmarks__cmd">{c.methodologyCommand}</code>
+      <span class="benchmarks__footnote-sep">·</span>
+      <span class="benchmarks__machine">
+        Run on {platform} {arch}, Node {node}, {benchDate}.
+      </span>
+      <br />
+      {c.methodologySuffix}
+    </p>
+
+    <a class="benchmarks__link" href={c.linkHref}>{c.linkLabel}</a>
+  </div>
+</section>
+
+<style>
+  .benchmarks {
+    padding: 80px 24px;
+  }
+
+  .benchmarks__inner {
+    max-width: var(--max-content-width);
+    margin: 0 auto;
+  }
+
+  /* ── Heading ─────────────────────────────────────────────────────── */
+  .benchmarks__head {
+    text-align: center;
+    margin: 0 0 48px;
+  }
+  .benchmarks__heading {
+    font-family: var(--font-sans);
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+    margin: 0 0 10px;
+  }
+  .benchmarks__subhead {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    margin: 0;
+  }
+
+  /* ── Bar groups ─────────────────────────────────────────────────── */
+  .benchmarks__bars {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 32px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .bar-group {
+    flex: 1 1 440px;
+    min-width: 0;
+    max-width: 520px;
+    padding: 18px 18px 14px;
+    background: var(--bg-code);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-lg);
+  }
+  /* the winning panel earns a faint mint tint on its border;
+     the losing panel stays neutral — visual honesty */
+  .bar-group[data-winner='nookdb'] {
+    border-color: rgba(168, 201, 127, 0.28);
+  }
+
+  .bar-group__label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin: 0 0 14px;
+    gap: 12px;
+  }
+  .bar-group__label {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+  }
+  .bar-group__dir {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-caption);
+    white-space: nowrap;
+  }
+
+  /* ── Bar rows ───────────────────────────────────────────────────── */
+  .bar-row {
+    display: grid;
+    grid-template-columns: 100px 1fr auto;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .bar-row:last-child { margin-bottom: 0; }
+
+  .bar-row__name {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .bar-row__name--nookdb { color: var(--mint); }
+  .bar-row__name--bsql {
+    color: var(--text-muted);
+    opacity: 0.8;
+  }
+  /* dim the NookDB name slightly when NookDB is NOT the winner — keeps
+     the "we lose this one" honest without hiding the row */
+  .bar-row[data-side='nookdb'][data-win='false'] .bar-row__name--nookdb {
+    color: var(--text-secondary);
+  }
+
+  /* Track */
+  .bar-row__track {
+    position: relative;
+    height: 12px;
+    border-radius: 4px;
+    background-color: color-mix(in srgb, var(--bg-elevated, #1e1c1a) 50%, transparent);
+    overflow: hidden;
+  }
+
+  /* Fill — mint when the side wins, grey when it doesn't */
+  .bar-row__fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    border-radius: 4px;
+    min-width: 0;
+    transition: width 0ms;
+  }
+  .bar-row__fill--nookdb {
+    background-color: var(--mint);
+    box-shadow: 0 0 12px rgba(168, 201, 127, 0.3);
+  }
+  .bar-row__fill--bsql {
+    background-color: color-mix(in srgb, var(--text-muted) 50%, transparent);
+  }
+  /* if NookDB lost this metric, dim our own bar to a neutral grey so the
+     winning grey bsql bar reads as the (deserved) leader visually */
+  .bar-row[data-side='nookdb'][data-win='false'] .bar-row__fill--nookdb {
+    background-color: color-mix(in srgb, var(--mint) 40%, transparent);
+    box-shadow: none;
+  }
+  /* if bsql won, give its bar a touch of weight so it doesn't look
+     accidentally muted while leading */
+  .bar-row[data-side='bsql'][data-win='true'] .bar-row__fill--bsql {
+    background-color: color-mix(in srgb, var(--text-muted) 75%, transparent);
+  }
+
+  /* Numeric value */
+  .bar-row__value {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    color: var(--text-primary);
+    white-space: nowrap;
+    text-align: right;
+    min-width: 6ch;
+  }
+
+  /* ── Tradeoff + footnote ─────────────────────────────────────────── */
+  .benchmarks__tradeoff {
+    max-width: 680px;
+    margin: 40px auto 0;
+    font-size: 13.5px;
+    line-height: 1.65;
+    color: var(--text-secondary);
+    text-align: center;
+  }
+
+  .benchmarks__footnote {
+    max-width: 760px;
+    margin: 22px auto 24px;
+    font-size: 11.5px;
+    line-height: 1.7;
+    color: var(--text-muted);
+    text-align: center;
+    font-family: var(--font-sans);
+  }
+  .benchmarks__footnote-prefix {
+    color: var(--text-caption);
+    text-transform: uppercase;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    margin-right: 6px;
+  }
+  .benchmarks__cmd {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-secondary);
+    background: var(--accent-subtle);
+    padding: 1px 6px;
+    border-radius: var(--r-sm);
+  }
+  .benchmarks__footnote-sep {
+    margin: 0 8px;
+    opacity: 0.55;
+  }
+  .benchmarks__machine {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+
+  /* ── Link ────────────────────────────────────────────────────────── */
+  .benchmarks__link {
+    display: block;
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--accent);
+    text-decoration: none;
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+  .benchmarks__link:hover {
+    color: var(--accent-hover);
+    text-decoration: underline;
+  }
+
+  /* ── Responsive ──────────────────────────────────────────────────── */
+  @media (max-width: 880px) {
+    .benchmarks__bars {
+      flex-direction: column;
+      gap: 24px;
+    }
+    .benchmarks__heading { font-size: 22px; }
+    .bar-group { max-width: 100%; }
+    .bar-row {
+      grid-template-columns: 90px 1fr auto;
+      gap: 8px;
+    }
+    .bar-row__value { font-size: 12px; min-width: 5ch; }
+    .bar-group__label-row { flex-direction: column; gap: 4px; align-items: flex-start; }
+    .benchmarks__footnote-sep { display: none; }
+    .benchmarks__machine { display: block; margin-top: 2px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bar-row__fill { transition: none; }
+  }
+</style>
+
+<script>
+  import '../scripts/reveal.ts';
+</script>

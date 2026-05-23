@@ -1,0 +1,28 @@
+---
+title: NookDB vs Dexie
+description: A short, honest comparison of NookDB and Dexie.
+---
+
+## Pick Dexie if...
+
+- Your app runs entirely in the browser and IndexedDB is the right storage layer.
+- You want a mature, well-documented library with years of production use behind it.
+- Your data model is simple enough that a lightweight IndexedDB wrapper is all you need.
+
+## Pick NookDB if...
+
+- You are shipping an Electron desktop app and need storage that outlives the browser context.
+- A Rust storage engine with ACID crash safety is worth the extra dependency weight.
+- You need a multi-process bridge so renderer and main process share the same database without coordination code.
+
+## Where they overlap
+
+Both Dexie and NookDB provide a schema-declaration layer that sits in front of the underlying storage engine, and both generate typed query results from that schema. Both support indexing fields for fast lookups and both expose a promise-based async API that feels natural in TypeScript. If you have built something with Dexie, the NookDB schema DSL will look familiar — `s.string()`, `s.number()`, `s.date()` mirror the same kinds of field builder patterns Dexie developers are used to.
+
+## What's genuinely different
+
+Dexie wraps IndexedDB, which is a browser API. That makes it a natural fit for web apps and PWAs, but IndexedDB is not available in Electron's main process, and its durability guarantees reflect browser-first priorities rather than desktop-app priorities. NookDB's storage layer is a Rust crate compiled to a native `.node` binary — it uses memory-mapped files and append-only writes to give you crash-safe durability that survives a forced kill. It also ships a main-process bridge so renderer windows can issue queries without each window opening its own file handle.
+
+---
+
+*— Ömer, Nookwright*

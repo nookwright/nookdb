@@ -1,0 +1,69 @@
+---
+import '../styles/tokens.css';
+import '../styles/animations.css';
+import SiteHeader from '../components/SiteHeader.astro';
+import HeroSection from '../components/HeroSection.astro';
+import StatsBand from '../components/StatsBand.astro';
+import StoryCardSchema from '../components/StoryCardSchema.astro';
+import StoryCardLive from '../components/StoryCardLive.astro';
+import StoryCardBridge from '../components/StoryCardBridge.astro';
+import FeatureExplorer from '../components/FeatureExplorer.astro';
+import AiReady from '../components/AiReady.astro';
+import QuoteBand from '../components/QuoteBand.astro';
+import ArchitectureDiagram from '../components/ArchitectureDiagram.astro';
+import DurabilityBand from '../components/DurabilityBand.astro';
+import MigrationBand from '../components/MigrationBand.astro';
+import WhenToUse from '../components/WhenToUse.astro';
+import BenchmarksStrip from '../components/BenchmarksStrip.astro';
+import FAQ from '../components/FAQ.astro';
+import InstallCTA from '../components/InstallCTA.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import { copy } from '../lib/copy';
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{copy.brand.product} — {copy.hero.headline}</title>
+    <meta name="description" content={copy.hero.subhead} />
+
+    <!-- OG / Twitter -->
+    <meta property="og:title" content={`${copy.brand.product} — ${copy.hero.headline}`} />
+    <meta property="og:description" content={copy.hero.subhead} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://nookdb.pages.dev/" />
+    <meta property="og:image" content="https://nookdb.pages.dev/og-image.svg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={`${copy.brand.product} — ${copy.hero.headline}`} />
+    <meta name="twitter:description" content={copy.hero.subhead} />
+    <meta name="twitter:image" content="https://nookdb.pages.dev/og-image.svg" />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png" />
+    <link rel="apple-touch-icon" href="/icon-256.png" />
+  </head>
+  <body>
+    <SiteHeader />
+    <main>
+      <HeroSection />
+      <QuoteBand />
+      <StoryCardSchema />
+      <StoryCardLive />
+      <StoryCardBridge />
+      <StatsBand />
+      <FeatureExplorer />
+      <AiReady />
+      <ArchitectureDiagram />
+      <DurabilityBand />
+      <MigrationBand />
+      <WhenToUse />
+      <BenchmarksStrip />
+      <FAQ />
+      <InstallCTA />
+    </main>
+    <SiteFooter />
+  </body>
+</html>

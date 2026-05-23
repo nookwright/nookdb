@@ -1,0 +1,163 @@
+---
+import { copy } from '../lib/copy';
+---
+
+<section class="faq section-reveal" aria-labelledby="faq-heading">
+  <div class="faq__inner">
+    <header class="faq__head">
+      <h2 class="faq__heading" id="faq-heading">{copy.faq.heading}</h2>
+      <p class="faq__subhead">Pre-1.0, in public — answers are short and honest.</p>
+    </header>
+
+    <div class="faq__list">
+      {copy.faq.entries.map((entry, index) => (
+        <details class="faq__entry" open={index === 0}>
+          <summary class="faq__question">
+            <span class="faq__q-text">{entry.q}</span>
+            <span class="faq__chev" aria-hidden="true"></span>
+          </summary>
+          <p class="faq__answer">{entry.a}</p>
+        </details>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .faq {
+    padding: 96px 24px;
+  }
+
+  .faq__inner {
+    max-width: 760px;
+    margin: 0 auto;
+  }
+
+  /* ── Heading ─────────────────────────────────────────────────────── */
+  .faq__head {
+    text-align: center;
+    margin: 0 0 48px;
+  }
+  .faq__heading {
+    font-family: var(--font-sans);
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    color: var(--text-primary);
+    margin: 0 0 10px;
+  }
+  .faq__subhead {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    margin: 0;
+  }
+
+  /* ── List ────────────────────────────────────────────────────────── */
+  .faq__list {
+    display: grid;
+    gap: 10px;
+  }
+
+  /* ── Card entry ──────────────────────────────────────────────────── */
+  .faq__entry {
+    background: var(--bg-code);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+    overflow: hidden;
+    transition: border-color var(--dur-fast) var(--ease-out);
+  }
+  .faq__entry:hover {
+    border-color: var(--border-default);
+  }
+  .faq__entry[open] {
+    border-color: var(--border-default);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 40%), var(--bg-code);
+  }
+
+  /* ── Question (summary) ──────────────────────────────────────────── */
+  .faq__question {
+    list-style: none;
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 18px 22px;
+    font-family: var(--font-sans);
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text-primary);
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+  .faq__question::-webkit-details-marker { display: none; }
+  .faq__entry:hover .faq__question { color: var(--accent-hover); }
+
+  .faq__q-text {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* chevron — minimal stroke icon that flips on open */
+  .faq__chev {
+    flex: none;
+    width: 12px;
+    height: 12px;
+    position: relative;
+    transition: transform var(--dur-fast) var(--ease-out),
+                color var(--dur-fast) var(--ease-out);
+    color: var(--text-muted);
+  }
+  .faq__chev::before,
+  .faq__chev::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 8px;
+    height: 1.5px;
+    background: currentColor;
+    transform-origin: center;
+    transition: transform var(--dur-fast) var(--ease-out),
+                background var(--dur-fast) var(--ease-out);
+  }
+  .faq__chev::before { transform: translate(-72%, -50%) rotate(45deg); }
+  .faq__chev::after  { transform: translate(-28%, -50%) rotate(-45deg); }
+
+  .faq__entry[open] .faq__chev {
+    color: var(--accent);
+    transform: rotate(180deg);
+  }
+
+  /* ── Answer ──────────────────────────────────────────────────────── */
+  .faq__answer {
+    margin: 0;
+    padding: 0 22px 20px;
+    color: var(--text-muted);
+    font-size: 14.5px;
+    line-height: 1.65;
+  }
+
+  /* ── Reduced motion ──────────────────────────────────────────────── */
+  @media (prefers-reduced-motion: reduce) {
+    .faq__entry,
+    .faq__chev,
+    .faq__chev::before,
+    .faq__chev::after,
+    .faq__question { transition: none; }
+  }
+
+  /* ── Responsive ──────────────────────────────────────────────────── */
+  @media (max-width: 600px) {
+    .faq { padding: 72px 20px; }
+    .faq__heading { font-size: 24px; }
+    .faq__question { padding: 16px 18px; font-size: 15px; }
+    .faq__answer { padding: 0 18px 16px; font-size: 13.5px; }
+  }
+</style>
+
+<script>
+  import '../scripts/reveal.ts';
+</script>

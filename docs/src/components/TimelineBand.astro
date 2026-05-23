@@ -1,0 +1,348 @@
+---
+/**
+ * TimelineBand — Horizontal timeline showing M0..M6 milestones.
+ * Responsive: horizontal flex row at ≥1080px, vertical stack at <1080px.
+ * Includes staggered fade-in animation on viewport intersection.
+ */
+---
+
+<section class="timeline" aria-label="Development milestones">
+  <div class="timeline__inner">
+    <div class="timeline__heading-group">
+      <h2 class="timeline__heading">Built in public.</h2>
+      <p class="timeline__subheading">From monorepo scaffold to 1.0 launch.</p>
+    </div>
+
+    <div class="timeline__track">
+      <div class="timeline__line"></div>
+      <div class="timeline__milestones">
+        {
+          [
+            {
+              id: 'M0',
+              label: 'Foundation',
+              desc: 'Monorepo, NAPI binding, CI',
+              status: 'done',
+              date: '2026-05-11',
+            },
+            {
+              id: 'M1',
+              label: 'Storage',
+              desc: 'redb + CRUD + tx + crash safety',
+              status: 'done',
+              date: '2026-05-19',
+            },
+            {
+              id: 'M2',
+              label: 'Schema + Queries',
+              desc: 'Schema DSL, queries, indexes',
+              status: 'done',
+              date: '2026-05-19',
+            },
+            {
+              id: 'M3',
+              label: 'Reactive',
+              desc: 'live() + notifier + React helper',
+              status: 'done',
+              date: '2026-05-19',
+            },
+            {
+              id: 'M4',
+              label: 'Multi-process',
+              desc: 'Electron bridge',
+              status: 'done',
+              date: '2026-05-20',
+            },
+            {
+              id: 'M5',
+              label: 'CLI + Docs',
+              desc: 'CLI, docs site, 6-platform CI',
+              status: 'done',
+              date: '2026-05-21',
+            },
+            {
+              id: 'M6',
+              label: '1.0 Launch',
+              desc: 'Public beta → GA',
+              status: 'in_progress',
+              date: 'soon',
+            },
+          ].map((milestone, index) => (
+            <div
+              class={`timeline__milestone ${milestone.status === 'in_progress' ? 'is-in-progress' : ''}`}
+              style={`--delay: ${index * 100}ms`}
+            >
+              <div class="milestone__id">{milestone.id}</div>
+              <div class={`milestone__dot ${milestone.status === 'in_progress' ? 'is-pulsing' : ''}`}></div>
+              <div class="milestone__label">{milestone.label}</div>
+              <div class="milestone__desc">{milestone.desc}</div>
+              <div class="milestone__date">{milestone.date}</div>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* ── Section ─────────────────────────────────────────────────────── */
+  .timeline {
+    padding: 80px 24px;
+    background: var(--bg);
+  }
+
+  /* ── Inner container ──────────────────────────────────────────────── */
+  .timeline__inner {
+    max-width: var(--max-content-width);
+    margin: 0 auto;
+  }
+
+  /* ── Heading group ───────────────────────────────────────────────── */
+  .timeline__heading-group {
+    text-align: center;
+    margin-bottom: 60px;
+  }
+
+  /* ── Main heading ────────────────────────────────────────────────── */
+  .timeline__heading {
+    font-family: var(--font-sans);
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 12px 0;
+    line-height: 1.2;
+    max-width: 720px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* ── Subheading ──────────────────────────────────────────────────── */
+  .timeline__subheading {
+    font-family: var(--font-sans);
+    font-size: 16px;
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.5;
+    max-width: 720px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* ── Track container (holds line + milestones) ──────────────────── */
+  .timeline__track {
+    position: relative;
+    display: flex;
+    justify-content: center;
+  }
+
+  /* ── Horizontal line (desktop) ───────────────────────────────────── */
+  .timeline__line {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: var(--border);
+    z-index: 0;
+  }
+
+  /* ── Milestones container ────────────────────────────────────────── */
+  .timeline__milestones {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: row;
+    gap: 0;
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  /* ── Individual milestone card ───────────────────────────────────── */
+  .timeline__milestone {
+    flex: 0 1 150px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  /* ── Animation: staggered fade-in on intersection ──────────────────── */
+  @media (prefers-reduced-motion: no-preference) {
+    .timeline__milestone {
+      opacity: 0;
+      animation: fade-in-up var(--dur-reveal) var(--ease-out) forwards;
+      animation-delay: var(--delay, 0ms);
+    }
+  }
+
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* ── Milestone ID ────────────────────────────────────────────────── */
+  .milestone__id {
+    font-family: var(--font-mono);
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+    line-height: 1;
+  }
+
+  /* ── Milestone dot ───────────────────────────────────────────────── */
+  .milestone__dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-bottom: 12px;
+    background: var(--text-primary);
+    border: 2px solid var(--text-primary);
+    box-sizing: border-box;
+    flex-shrink: 0;
+  }
+
+  /* ── In-progress dot (hollow with pulse) ──────────────────────────── */
+  .milestone__dot.is-pulsing {
+    background: transparent;
+    border-color: var(--border);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .milestone__dot.is-pulsing {
+      animation: pulse 2s ease-in-out infinite;
+    }
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 0.5;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  /* ── Milestone label ─────────────────────────────────────────────── */
+  .milestone__label {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin: 0 0 4px 0;
+    line-height: 1.4;
+  }
+
+  /* ── Milestone description ───────────────────────────────────────── */
+  .milestone__desc {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: 0 0 8px 0;
+    line-height: 1.5;
+  }
+
+  /* ── Milestone date ──────────────────────────────────────────────── */
+  .milestone__date {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-caption);
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  /* ── Desktop: ≥1080px (horizontal) ──────────────────────────────── */
+  @media (min-width: 1080px) {
+    .timeline__line {
+      top: 50%;
+    }
+
+    .timeline__milestones {
+      flex-direction: row;
+    }
+
+    .milestone__dot {
+      margin-bottom: 12px;
+    }
+  }
+
+  /* ── Mobile/Tablet: <1080px (vertical) ──────────────────────────── */
+  @media (max-width: 1079px) {
+    .timeline {
+      padding: 60px 24px;
+    }
+
+    .timeline__heading {
+      font-size: 24px;
+    }
+
+    .timeline__subheading {
+      font-size: 14px;
+    }
+
+    .timeline__track {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .timeline__line {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 5px;
+      right: auto;
+      width: 1px;
+      height: 100%;
+      background: var(--border);
+    }
+
+    .timeline__milestones {
+      flex-direction: column;
+      gap: 32px;
+      padding-left: 32px;
+      width: 100%;
+    }
+
+    .timeline__milestone {
+      flex: none;
+      align-items: flex-start;
+      text-align: left;
+    }
+
+    .milestone__id {
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+
+    .milestone__dot {
+      position: absolute;
+      left: -7px;
+      top: 2px;
+      margin-bottom: 0;
+    }
+
+    .milestone__label {
+      font-size: 13px;
+    }
+
+    .milestone__desc {
+      font-size: 11px;
+      margin-bottom: 6px;
+    }
+
+    .milestone__date {
+      font-size: 10px;
+    }
+  }
+</style>
+
+<script>
+  import '../scripts/timeline-band.ts';
+</script>

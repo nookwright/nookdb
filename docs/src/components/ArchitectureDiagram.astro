@@ -1,0 +1,401 @@
+---
+import { copy } from '../lib/copy';
+
+const { heading, linkLabel, linkHref } = copy.architecture;
+---
+
+<section class="arch section-reveal" aria-labelledby="arch-heading">
+  <div class="arch__inner">
+    <p class="arch__label" id="arch-heading" aria-label={heading}>{heading}</p>
+
+    <div class="arch__diagram-wrap" role="img" aria-label="Architecture diagram showing NookDB layers: nookdb-core Rust crate, nookdb-napi NAPI binding, TypeScript surface, Electron main process, and renderer processes connected by arrows.">
+      <svg
+        viewBox="0 0 880 540"
+        xmlns="http://www.w3.org/2000/svg"
+        class="arch__svg"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <defs>
+          <!-- Arrowhead marker for accent-colored arrows -->
+          <marker
+            id="arrow"
+            markerWidth="8"
+            markerHeight="8"
+            refX="6"
+            refY="3"
+            orient="auto"
+            markerUnits="strokeWidth"
+          >
+            <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)" />
+          </marker>
+
+          <!-- Subtle glow filter for boxes -->
+          <filter id="box-glow" x="-10%" y="-20%" width="120%" height="140%">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+          </filter>
+        </defs>
+
+        <!-- ═══════════════════════════════════════════════
+             ROW 1 BOXES (y=40)
+             ═══════════════════════════════════════════════ -->
+
+        <!-- nookdb-core (Rust) — top-left at (40,40) 200×80 -->
+        <g class="arch__box">
+          <rect x="40" y="40" width="200" height="80" rx="8"
+                class="arch__rect" />
+          <text x="140" y="76" class="arch__label-main" text-anchor="middle">nookdb-core</text>
+          <text x="140" y="95" class="arch__label-sub" text-anchor="middle">(Rust + redb 2.x)</text>
+        </g>
+
+        <!-- nookdb-napi — top-center at (340,40) 200×80 -->
+        <g class="arch__box">
+          <rect x="340" y="40" width="200" height="80" rx="8"
+                class="arch__rect" />
+          <text x="440" y="76" class="arch__label-main" text-anchor="middle">nookdb-napi</text>
+          <text x="440" y="95" class="arch__label-sub" text-anchor="middle">(NAPI binding)</text>
+        </g>
+
+        <!-- @nookdb/electron — top-right at (640,40) 200×80 -->
+        <g class="arch__box">
+          <rect x="640" y="40" width="200" height="80" rx="8"
+                class="arch__rect" />
+          <text x="740" y="76" class="arch__label-main" text-anchor="middle">@nookdb/electron</text>
+          <text x="740" y="95" class="arch__label-sub" text-anchor="middle">(TS surface)</text>
+        </g>
+
+        <!-- ═══════════════════════════════════════════════
+             ROW 2 BOX (y=220)
+             ═══════════════════════════════════════════════ -->
+
+        <!-- Electron main — middle-center at (340,220) 200×80 -->
+        <g class="arch__box">
+          <rect x="340" y="220" width="200" height="80" rx="8"
+                class="arch__rect" />
+          <text x="440" y="256" class="arch__label-main" text-anchor="middle">Electron main</text>
+          <text x="440" y="275" class="arch__label-sub" text-anchor="middle">(process)</text>
+        </g>
+
+        <!-- ═══════════════════════════════════════════════
+             ROW 3 BOXES (y=420)
+             ═══════════════════════════════════════════════ -->
+
+        <!-- Renderer #1 — bottom-left at (180,420) 200×80 -->
+        <g class="arch__box">
+          <rect x="180" y="420" width="200" height="80" rx="8"
+                class="arch__rect arch__rect--renderer" />
+          <text x="280" y="456" class="arch__label-main" text-anchor="middle">Renderer #1</text>
+          <text x="280" y="475" class="arch__label-sub" text-anchor="middle">(process)</text>
+        </g>
+
+        <!-- Renderer #2 — bottom-right at (500,420) 200×80 -->
+        <g class="arch__box">
+          <rect x="500" y="420" width="200" height="80" rx="8"
+                class="arch__rect arch__rect--renderer" />
+          <text x="600" y="456" class="arch__label-main" text-anchor="middle">Renderer #2</text>
+          <text x="600" y="475" class="arch__label-sub" text-anchor="middle">(process)</text>
+        </g>
+
+        <!-- ═══════════════════════════════════════════════
+             ARROWS (accent color, with arrowhead marker)
+             ═══════════════════════════════════════════════ -->
+
+        <!-- Arrow 1: nookdb-core right edge → nookdb-napi left edge
+             Horizontal at y=80 (box vertical midpoint) -->
+        <line
+          x1="240" y1="80"
+          x2="334" y2="80"
+          class="arch__arrow"
+          marker-end="url(#arrow)"
+        />
+        <!-- Label: spawn_blocking — centered above the arrow -->
+        <text x="290" y="68" class="arch__arrow-label" text-anchor="middle">spawn_blocking</text>
+
+        <!-- Arrow 2: nookdb-napi right edge → @nookdb/electron left edge
+             Horizontal at y=80 -->
+        <line
+          x1="540" y1="80"
+          x2="634" y2="80"
+          class="arch__arrow"
+          marker-end="url(#arrow)"
+        />
+        <!-- Label: JS surface -->
+        <text x="587" y="68" class="arch__arrow-label" text-anchor="middle">JS surface</text>
+
+        <!-- Arrow 3: @nookdb/electron bottom (740,120) → Electron main top (440,220)
+             Diagonal down-left -->
+        <line
+          x1="740" y1="120"
+          x2="546" y2="214"
+          class="arch__arrow"
+          marker-end="url(#arrow)"
+        />
+        <!-- Label: live() / insert() — along the midpoint of the diagonal -->
+        <text x="660" y="163" class="arch__arrow-label" text-anchor="middle"
+              transform="rotate(-28, 660, 163)">live() / insert()</text>
+
+        <!-- Arrow 4: Electron main bottom (440,300) → Renderer #1 top (280,420)
+             Diagonal down-left -->
+        <line
+          x1="420" y1="300"
+          x2="292" y2="414"
+          class="arch__arrow"
+          marker-end="url(#arrow)"
+        />
+        <!-- Label: broadcast channel — midpoint -->
+        <text x="338" y="349" class="arch__arrow-label" text-anchor="middle"
+              transform="rotate(-40, 338, 349)">broadcast</text>
+
+        <!-- Arrow 5: Electron main bottom (440,300) → Renderer #2 top (600,420)
+             Diagonal down-right — no label -->
+        <line
+          x1="460" y1="300"
+          x2="590" y2="414"
+          class="arch__arrow"
+          marker-end="url(#arrow)"
+        />
+
+        <!-- ═══════════════════════════════════════════════
+             FLOW PULSES — mint dots travel each arrow, staggered,
+             so data visibly flows core → napi → surface → main → renderers
+             ═══════════════════════════════════════════════ -->
+        <g class="arch__flow" aria-hidden="true">
+          <circle r="3.2" class="arch__flow-dot">
+            <animateMotion dur="1.3s" begin="0s" repeatCount="indefinite" path="M240,80 L334,80" />
+          </circle>
+          <circle r="3.2" class="arch__flow-dot">
+            <animateMotion dur="1.3s" begin="0.45s" repeatCount="indefinite" path="M540,80 L634,80" />
+          </circle>
+          <circle r="3.2" class="arch__flow-dot">
+            <animateMotion dur="1.5s" begin="0.9s" repeatCount="indefinite" path="M740,120 L546,214" />
+          </circle>
+          <circle r="3.2" class="arch__flow-dot">
+            <animateMotion dur="1.5s" begin="1.4s" repeatCount="indefinite" path="M420,300 L292,414" />
+          </circle>
+          <circle r="3.2" class="arch__flow-dot">
+            <animateMotion dur="1.5s" begin="1.4s" repeatCount="indefinite" path="M460,300 L590,414" />
+          </circle>
+        </g>
+
+      </svg>
+    </div>
+
+    <p class="arch__caption">
+      Rust core via <code>redb 2.x</code>.
+      <code>tokio::task::spawn_blocking</code> bridges sync storage to JS async.
+      Errors are reshaped at each boundary with a <code>[kind] message</code> prefix convention.
+    </p>
+
+    <a class="arch__link" href={linkHref}>{linkLabel}</a>
+  </div>
+</section>
+
+<script>
+  import '../scripts/reveal.ts';
+</script>
+
+<style>
+  /* ── Section shell ── */
+  .arch {
+    padding: 80px var(--s-8);
+    text-align: center;
+  }
+
+  .arch__inner {
+    max-width: 960px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--s-6);
+  }
+
+  /* ── Section heading (mono, small caps, accent) ── */
+  .arch__label {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0;
+  }
+
+  /* ── SVG wrapper ── */
+  .arch__diagram-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 880px;
+  }
+
+  /* lamp glow behind nookdb-core — the Rust origin everything flows from */
+  .arch__diagram-wrap::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 4%;
+    width: 30%;
+    height: 38%;
+    background: radial-gradient(circle, var(--lamp-glow-color) 0%, transparent 64%);
+    opacity: 0.07;
+    filter: blur(26px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Flow pulses ── */
+  .arch__flow-dot {
+    fill: var(--mint);
+    filter: drop-shadow(0 0 4px var(--mint));
+  }
+
+  .arch__svg {
+    width: 100%;
+    height: auto;
+    display: block;
+    overflow: visible;
+  }
+
+  /* ── Box rectangles ── */
+  .arch__rect {
+    fill: var(--bg-elevated);
+    stroke: currentColor;
+    stroke-width: 1.5;
+    opacity: 0.9;
+    transition:
+      opacity calc(var(--motion-dur) * 1.2) var(--ease-out),
+      stroke calc(var(--motion-dur) * 1.2) var(--ease-out);
+  }
+
+  /* Renderer boxes get a slightly different tint */
+  .arch__rect--renderer {
+    fill: var(--bg-code);
+    stroke: var(--border-default);
+  }
+
+  /* ── Hover interactivity ─────────────────────────────────────────
+   * When the SVG is hovered, all boxes + arrows dim to 0.35.
+   * The specific box/arrow under the cursor stays at full opacity
+   * with a bright stroke. Pure CSS, no JS. */
+  .arch__box {
+    cursor: pointer;
+  }
+
+  .arch__svg:hover .arch__box,
+  .arch__svg:hover .arch__arrow,
+  .arch__svg:hover .arch__arrow-label {
+    opacity: 0.35;
+  }
+
+  .arch__svg .arch__box:hover .arch__rect,
+  .arch__svg .arch__arrow:hover {
+    opacity: 1;
+    stroke: var(--text-primary);
+  }
+
+  .arch__svg .arch__box:hover {
+    opacity: 1;
+  }
+
+  .arch__svg .arch__box:hover .arch__label-main,
+  .arch__svg .arch__box:hover .arch__label-sub {
+    fill: var(--text-primary);
+  }
+
+  .arch__box,
+  .arch__arrow,
+  .arch__arrow-label {
+    transition: opacity calc(var(--motion-dur) * 1.2) var(--ease-out);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .arch__rect,
+    .arch__box,
+    .arch__arrow,
+    .arch__arrow-label {
+      transition: none;
+    }
+    .arch__flow { display: none; }
+  }
+
+  /* ── Box labels ── */
+  .arch__label-main {
+    font-family: var(--font-mono);
+    font-size: 16px;
+    font-weight: 500;
+    fill: var(--text-primary);
+    dominant-baseline: auto;
+  }
+
+  .arch__label-sub {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 400;
+    fill: var(--text-muted);
+    dominant-baseline: auto;
+  }
+
+  /* ── Arrows ── */
+  .arch__arrow {
+    stroke: var(--accent);
+    stroke-width: 1.5;
+    fill: none;
+  }
+
+  /* ── Arrow labels ── */
+  .arch__arrow-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    fill: var(--text-muted);
+  }
+
+  /* ── Caption ── */
+  .arch__caption {
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--text-muted);
+    max-width: 640px;
+    margin: 0;
+    text-align: center;
+  }
+
+  .arch__caption code {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text-secondary);
+    background: var(--accent-subtle);
+    padding: 1px 4px;
+    border-radius: var(--r-sm);
+  }
+
+  /* ── Architecture link ── */
+  .arch__link {
+    font-size: var(--type-body);
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+
+  .arch__link:hover {
+    text-decoration: underline;
+    color: var(--accent-hover);
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 600px) {
+    .arch {
+      padding: 56px var(--s-4);
+    }
+
+    /* Scale the SVG text slightly on narrow screens — viewBox handles scaling */
+    .arch__label-main {
+      font-size: 13px;
+    }
+
+    .arch__label-sub {
+      font-size: 10px;
+    }
+  }
+</style>

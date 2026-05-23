@@ -1,0 +1,346 @@
+---
+// HeroRepl — an interactive NookDB shell (REPL) for the hero.
+// Type a query at the `nook>` prompt, press Enter, and the result renders as a
+// formatted table below; history scrolls up like a real database shell.
+//
+// Robust by construction: a native <input> (visible text, native caret) plus an
+// append-only log (native scroll). No transparent-overlay editor — the class of
+// "invisible text / won't scroll" bugs is structurally impossible here.
+//
+// Execution runs a faithful JS simulation of the NookDB API inside a Web Worker
+// with a 1s watchdog, so a stray infinite loop can never freeze the tab.
+// Honesty: it's a simulation, not the Rust core — stated in the footer.
+---
+
+<div class="repl" aria-label="Interactive NookDB shell — type a query and press Enter">
+  <!-- Chrome -->
+  <div class="repl__chrome">
+    <span class="repl__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span class="repl__name">nook — shell</span>
+    <span class="repl__badge" aria-hidden="true">JS sim</span>
+  </div>
+
+  <!-- Scrollback log (seeded with one example so it never opens blank) -->
+  <div class="repl__log" data-log>
+    <div class="repl__banner">nookdb shell · in-browser simulation. Type <code>help</code> for commands.</div>
+
+    <div class="repl__entry">
+      <div class="repl__cmd">
+        <span class="repl__prompt">nook&gt;</span>
+        <code><span class="t-builtin">db</span>.todos.<span class="t-method">where</span>(t =&gt; !t.done).<span class="t-method">orderBy</span>(<span class="t-string">'title'</span>)</code>
+      </div>
+      <div class="repl__result">
+        <table class="repl__table">
+          <thead><tr><th>id</th><th>title</th><th>done</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>buy milk</td><td>false</td></tr>
+            <tr><td>3</td><td>water plants</td><td>false</td></tr>
+          </tbody>
+        </table>
+        <div class="repl__meta">2 rows · 0 network requests</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Example chips — click to run, kills the blank-page problem -->
+  <div class="repl__examples" data-examples>
+    <button type="button" class="repl__ex repl__ex--help" data-ex="help">help</button>
+    <button type="button" class="repl__ex" data-ex="db.todos.toArray()">all rows</button>
+    <button type="button" class="repl__ex" data-ex="db.todos.where(t => !t.done).count()">open count</button>
+    <button type="button" class="repl__ex" data-ex="await db.todos.insert({ title: 'ship v1' })">insert</button>
+  </div>
+
+  <!-- Input line -->
+  <form class="repl__inputrow" data-form>
+    <span class="repl__prompt" aria-hidden="true">nook&gt;</span>
+    <input
+      class="repl__input"
+      data-input
+      type="text"
+      autocomplete="off"
+      autocapitalize="off"
+      autocorrect="off"
+      spellcheck="false"
+      placeholder="db.todos.where(t => !t.done).orderBy('title')"
+      aria-label="NookDB shell command — press Enter to run"
+    />
+  </form>
+
+  <!-- Honesty footer -->
+  <div class="repl__foot">running an in-browser simulation — not the Rust core</div>
+</div>
+
+<script>import '../scripts/hero-repl.ts'</script>
+
+<style>
+  .repl {
+    width: 100%;
+    max-width: 560px;
+    height: 460px;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-code);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-lg);
+    box-shadow: var(--shadow-elevated);
+    overflow: hidden;
+  }
+
+  /* ── Chrome ─────────────────────────────────────────────────────── */
+  .repl__chrome {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 13px;
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--bg-elevated);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.03em;
+  }
+  .repl__dots { display: inline-flex; gap: 4px; }
+  .repl__dots i {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--border-default); display: block;
+  }
+  .repl__name { flex: 1; }
+  .repl__badge {
+    font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em;
+    padding: 2px 6px; border-radius: 999px;
+    border: 1px solid var(--border-default); color: var(--text-muted);
+  }
+
+  /* ── Scrollback log ─────────────────────────────────────────────── */
+  .repl__log {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 14px;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    line-height: 1.6;
+    scroll-behavior: smooth;
+  }
+  .repl__log::-webkit-scrollbar { width: 8px; }
+  .repl__log::-webkit-scrollbar-thumb {
+    background: var(--border-default); border-radius: 4px;
+  }
+
+  .repl__banner {
+    color: var(--text-muted);
+    font-size: 11px;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .repl__banner code {
+    color: var(--mint);
+    background: rgba(168, 201, 127, 0.08);
+    padding: 0 4px;
+    border-radius: 3px;
+  }
+
+  /* ── help block ─────────────────────────────────────────────────── */
+  .repl__help { font-size: 12px; }
+  .repl__help-intro {
+    color: var(--text-muted);
+    font-size: 11px;
+    margin: 2px 0 8px;
+  }
+  .repl__help-intro code {
+    color: var(--text-secondary);
+    background: var(--accent-subtle);
+    padding: 0 4px;
+    border-radius: 3px;
+  }
+  .repl__help-list {
+    list-style: none;
+    margin: 0 0 8px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .repl__help-list li {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    align-items: baseline;
+  }
+  .repl__help-cmd {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: transparent;
+    border: 0;
+    padding: 2px 5px;
+    border-radius: 4px;
+    color: var(--text-primary);
+    cursor: pointer;
+    text-align: left;
+    transition: background var(--dur-fast) var(--ease-out);
+  }
+  .repl__help-cmd:hover { background: rgba(168, 201, 127, 0.10); }
+  .repl__help-cmd:focus-visible { outline: 2px solid var(--mint); outline-offset: 1px; }
+  .repl__help-desc { color: var(--text-muted); font-size: 11px; }
+  .repl__help-foot { color: var(--text-muted); font-size: 11px; }
+  .repl__help-foot code {
+    color: var(--mint);
+    background: rgba(168, 201, 127, 0.08);
+    padding: 0 4px;
+    border-radius: 3px;
+  }
+
+  .repl__ex--help { border-color: rgba(168, 201, 127, 0.4); color: var(--mint); }
+
+  .repl__entry {
+    margin-bottom: 12px;
+    animation: repl-enter 260ms var(--ease-out);
+  }
+  @keyframes repl-enter {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .repl__cmd {
+    display: flex;
+    gap: 8px;
+    color: var(--text-primary);
+    word-break: break-word;
+  }
+  .repl__cmd code { font: inherit; }
+  .repl__prompt {
+    color: var(--mint);
+    font-weight: 600;
+    flex-shrink: 0;
+    user-select: none;
+  }
+
+  .repl__result { margin-top: 6px; }
+
+  /* ── Result table ───────────────────────────────────────────────── */
+  .repl__table {
+    border-collapse: collapse;
+    font-size: 12px;
+    margin: 2px 0 4px;
+  }
+  .repl__table th,
+  .repl__table td {
+    text-align: left;
+    padding: 3px 14px 3px 0;
+    border-bottom: 1px solid var(--border-subtle);
+    white-space: nowrap;
+  }
+  .repl__table th {
+    color: var(--text-muted);
+    font-weight: 500;
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+  }
+  .repl__table td { color: var(--text-primary); }
+  .repl__table tr.is-new td {
+    animation: repl-rowpulse 1.1s var(--ease-out);
+  }
+  @keyframes repl-rowpulse {
+    0%   { background: rgba(168, 201, 127, 0.22); }
+    100% { background: transparent; }
+  }
+
+  .repl__value { color: var(--text-primary); white-space: pre-wrap; word-break: break-word; }
+  .repl__logline { color: var(--text-secondary); white-space: pre-wrap; }
+  .repl__logline--warn  { color: var(--accent-deep); }
+  .repl__logline--error,
+  .repl__error { color: var(--error); white-space: pre-wrap; }
+  .repl__meta {
+    color: var(--text-muted);
+    font-size: 10.5px;
+    margin-top: 2px;
+  }
+
+  /* Syntax tokens for the echoed command */
+  .t-string  { color: var(--accent-deep); }
+  .t-keyword { color: var(--text-primary); font-weight: 600; }
+  .t-builtin { color: var(--text-secondary); font-weight: 500; }
+  .t-method  { color: var(--mint); }
+  .t-number  { color: var(--accent-deep); }
+
+  /* ── Example chips ──────────────────────────────────────────────── */
+  .repl__examples {
+    flex-shrink: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 14px;
+    border-top: 1px solid var(--border-subtle);
+    background: var(--bg);
+  }
+  .repl__ex {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-secondary);
+    padding: 4px 9px;
+    border: 1px solid var(--border-default);
+    border-radius: 999px;
+    background: transparent;
+    cursor: pointer;
+    transition: border-color var(--dur-fast) var(--ease-out),
+                color var(--dur-fast) var(--ease-out),
+                background var(--dur-fast) var(--ease-out);
+  }
+  .repl__ex::before { content: '▸ '; color: var(--text-muted); }
+  .repl__ex:hover {
+    border-color: var(--mint);
+    color: var(--text-primary);
+    background: rgba(168, 201, 127, 0.06);
+  }
+  .repl__ex:focus-visible { outline: 2px solid var(--mint); outline-offset: 2px; }
+
+  /* ── Input line ─────────────────────────────────────────────────── */
+  .repl__inputrow {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 14px;
+    border-top: 1px solid var(--border-subtle);
+    background: var(--bg-code);
+  }
+  .repl__input {
+    flex: 1;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: var(--text-primary);
+    caret-color: var(--mint);
+    font-family: var(--font-mono);
+    font-size: 13px;
+  }
+  .repl__input::placeholder { color: var(--text-muted); opacity: 0.7; }
+  .repl__input::selection { background: rgba(168, 201, 127, 0.22); }
+
+  /* ── Footer ─────────────────────────────────────────────────────── */
+  .repl__foot {
+    flex-shrink: 0;
+    padding: 7px 13px;
+    border-top: 1px solid var(--border-subtle);
+    background: var(--bg-elevated);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+    text-align: center;
+  }
+
+  /* ── Reduced motion ─────────────────────────────────────────────── */
+  @media (prefers-reduced-motion: reduce) {
+    .repl__log { scroll-behavior: auto; }
+    .repl__entry,
+    .repl__table tr.is-new td { animation: none; }
+  }
+
+  /* ── Mobile ─────────────────────────────────────────────────────── */
+  @media (max-width: 879px) {
+    .repl { height: 400px; }
+  }
+</style>

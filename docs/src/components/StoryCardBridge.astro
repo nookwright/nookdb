@@ -1,0 +1,330 @@
+---
+import { copy } from '../lib/copy';
+const c = copy.story.bridge;
+---
+
+<section class="story-card-slot">
+  <div class="story-card story-card--bridge">
+    <div class="story-card__inner">
+      <h2 class="story-card__title">{c.title}</h2>
+      <p class="story-card__body" set:html={c.body.replace(/`(.+?)`/g, '<code>$1</code>')}></p>
+
+      <div class="br" aria-label="Electron's three process boundaries: manual IPC plumbing versus a single NookDB subscription">
+        <!-- ── BEFORE: manual IPC across three processes ───────────── -->
+        <div class="br__side br__side--before">
+          <div class="br__head">
+            <span class="br__label">{c.beforeLabel}</span>
+            <span class="br__cost br__cost--before">3 files · ~40 lines · manual refetch + broadcast</span>
+          </div>
+
+          <div class="br__lanes">
+            <!-- process rail: tangled, bidirectional hops -->
+            <div class="br__rail br__rail--before" aria-hidden="true">
+              <span class="br__wire br__wire--before"></span>
+              <span class="br__node" style="top: 16.66%"></span>
+              <span class="br__node" style="top: 50%"></span>
+              <span class="br__node" style="top: 83.33%"></span>
+              <span class="br__hop" style="top: 33%">invoke ↑↓</span>
+              <span class="br__hop" style="top: 66%">broadcast ⟳</span>
+            </div>
+
+            <div class="br__col">
+              <div class="br__lane">
+                <span class="br__tag">main</span>
+                <pre class="br__code br__code--muted">ipcMain.<span class="br__fn">handle</span>('todos:get', () =&gt; db.todos.all())
+ipcMain.<span class="br__fn">handle</span>('todos:add', (_, t) =&gt; db.todos.insert(t))</pre>
+              </div>
+              <div class="br__lane">
+                <span class="br__tag">preload</span>
+                <pre class="br__code br__code--muted">contextBridge.<span class="br__fn">exposeInMainWorld</span>('api', {'{'}
+  todosGet: () =&gt; ipcRenderer.invoke('todos:get'),
+  todosAdd: (t) =&gt; ipcRenderer.invoke('todos:add', t),
+{'}'})</pre>
+              </div>
+              <div class="br__lane">
+                <span class="br__tag">renderer</span>
+                <pre class="br__code br__code--muted">const [todos, setTodos] = useState([])
+useEffect(() =&gt; {'{'} api.todosGet().then(setTodos) {'}'}, [])
+const onAdd = async (t) =&gt; {'{'}
+  await api.todosAdd(t)
+  setTodos(await api.todosGet())   <span class="br__warn">// manual refetch</span>
+  <span class="br__warn">// …and broadcast to every other window</span>
+{'}'}</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── AFTER: one subscription threads all three ───────────── -->
+        <div class="br__side br__side--after">
+          <div class="br__head">
+            <span class="br__label br__label--after">{c.afterLabel}</span>
+            <span class="br__cost br__cost--after">1 file · 1 line · auto-synced across windows</span>
+          </div>
+
+          <div class="br__lanes">
+            <!-- process rail: a single mint wire pierces all three -->
+            <div class="br__rail br__rail--after" aria-hidden="true">
+              <span class="br__wire br__wire--after"></span>
+              <span class="br__pulse"></span>
+              <span class="br__node br__node--after" style="top: 16.66%"></span>
+              <span class="br__node br__node--after" style="top: 50%"></span>
+              <span class="br__node br__node--after" style="top: 83.33%"></span>
+            </div>
+
+            <div class="br__col">
+              <div class="br__lane br__lane--after">
+                <span class="br__tag">main</span>
+                <pre class="br__code br__code--dim">// your schema lives here
+// nothing to wire</pre>
+              </div>
+              <div class="br__lane br__lane--after">
+                <span class="br__tag">preload</span>
+                <pre class="br__code br__code--dim">// bridge — automatic</pre>
+              </div>
+              <div class="br__lane br__lane--after">
+                <span class="br__tag">renderer · react</span>
+                <pre class="br__code">await db.todos.<span class="br__fn br__fn--mint">insert</span>({'{ title }'})
+const todos = <span class="br__fn br__fn--mint">useLive</span>(() =&gt;
+  db.todos.<span class="br__fn br__fn--mint">live</span>()
+)</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p class="br__note">One typed channel does the IPC: query results are serialized across the process boundary, and a per-window <code>Authorizer</code> gates what each renderer is allowed to read. Same API in any framework — <code>useLive</code> is the React convenience from <code>@nookdb/react</code>; Vue, Svelte and vanilla consume the <code>LiveQuery.subscribe()</code> / AsyncIterator surface directly. <a href="/guides/electron-bridge/">How the bridge works →</a></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<link rel="stylesheet" href="/src/styles/story-cards.css" />
+<script>
+  import '../scripts/story-cards.ts';
+</script>
+
+<style>
+  .br {
+    display: grid;
+    grid-template-columns: 1.32fr 1fr;
+    gap: 24px;
+    align-items: start;
+    max-width: 1040px;
+    width: 100%;
+    margin: 36px auto 0;
+  }
+
+  /* honest failure-mode + security note under the diagram */
+  .br__note {
+    max-width: 1040px;
+    margin: 18px auto 0;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    line-height: 1.6;
+    color: var(--text-muted);
+    letter-spacing: 0.01em;
+  }
+  .br__note code {
+    color: var(--text-secondary);
+    background: var(--accent-subtle);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+  .br__note a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .br__note a:hover { text-decoration: underline; }
+
+  /* ── Side frame ──────────────────────────────────────────────────── */
+  .br__side {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+  }
+  .br__side--after {
+    border-color: var(--border-default);
+    box-shadow: var(--shadow-elevated);
+  }
+
+  .br__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--bg-popover);
+  }
+  .br__label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+  .br__label--after { color: var(--mint); }
+  .br__cost {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    letter-spacing: 0.04em;
+    text-align: right;
+  }
+  .br__cost--before { color: var(--text-muted); }
+  .br__cost--after { color: var(--text-secondary); }
+
+  /* ── Lanes: process rail + code column ───────────────────────────── */
+  .br__lanes {
+    display: grid;
+    grid-template-columns: 84px 1fr;
+  }
+
+  .br__rail {
+    position: relative;
+    grid-column: 1;
+    border-right: 1px solid var(--border-subtle);
+  }
+
+  /* vertical wire down the rail */
+  .br__wire {
+    position: absolute;
+    left: 50%;
+    top: 8%;
+    bottom: 8%;
+    width: 1px;
+    transform: translateX(-50%);
+  }
+  .br__wire--before {
+    background: repeating-linear-gradient(
+      to bottom,
+      var(--text-muted) 0 4px,
+      transparent 4px 9px
+    );
+    opacity: 0.5;
+  }
+  .br__wire--after {
+    background: linear-gradient(to bottom, transparent, var(--mint) 14%, var(--mint) 86%, transparent);
+    opacity: 0.85;
+  }
+
+  .br__node {
+    position: absolute;
+    left: 50%;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--bg-elevated);
+    border: 1.5px solid var(--text-muted);
+    opacity: 0.7;
+  }
+  .br__node--after {
+    background: var(--mint);
+    border-color: var(--mint);
+    opacity: 1;
+    box-shadow: 0 0 8px var(--mint);
+  }
+
+  /* before: muted hop labels rotated along the rail */
+  .br__hop {
+    position: absolute;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-90deg);
+    transform-origin: center;
+    white-space: nowrap;
+    font-family: var(--font-mono);
+    font-size: 8px;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    opacity: 0.6;
+  }
+
+  /* after: a pulse flows down the single wire */
+  .br__pulse {
+    position: absolute;
+    left: 50%;
+    top: 8%;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--mint);
+    box-shadow: 0 0 10px var(--mint);
+    opacity: 0;
+  }
+  .story-card--bridge.is-active .br__pulse {
+    animation: br-flow 2.8s var(--ease-out) infinite;
+    animation-delay: 0.4s;
+  }
+  @keyframes br-flow {
+    0%        { top: 8%;  opacity: 0; }
+    12%       { opacity: 1; }
+    88%       { opacity: 1; }
+    100%      { top: 92%; opacity: 0; }
+  }
+
+  /* ── Code column ─────────────────────────────────────────────────── */
+  .br__col { grid-column: 2; }
+
+  .br__lane {
+    position: relative;
+    padding: 12px 16px;
+    min-height: 84px;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .br__lane:last-child { border-bottom: none; }
+
+  .br__tag {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 8.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  .br__lane--after .br__tag { color: var(--text-muted); }
+
+  .br__code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1.65;
+    color: var(--text-primary);
+    margin: 0;
+    white-space: pre;
+    overflow-x: auto;
+    background: transparent;
+  }
+  .br__code--muted { color: var(--text-secondary); opacity: 0.75; }
+  .br__code--dim { color: var(--text-muted); opacity: 0.55; font-style: italic; }
+
+  .br__fn { color: var(--text-primary); font-weight: 600; }
+  .br__fn--mint { color: var(--mint); font-weight: 600; }
+  .br__warn { color: var(--error); opacity: 0.85; }
+
+  /* the after renderer line — make the one-liner the hero of its lane */
+  .br__lane--after:last-child .br__code {
+    font-size: 13px;
+    color: var(--text-primary);
+  }
+
+  /* ── Mobile: stack before over after ─────────────────────────────── */
+  @media (max-width: 880px) {
+    .br {
+      grid-template-columns: 1fr;
+      gap: 20px;
+      margin-top: 24px;
+    }
+    .br__lanes { grid-template-columns: 64px 1fr; }
+    .br__code { font-size: 10.5px; }
+    .br__hop { font-size: 7px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .story-card--bridge.is-active .br__pulse { animation: none; opacity: 0; }
+  }
+</style>

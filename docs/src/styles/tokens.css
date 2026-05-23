@@ -1,0 +1,175 @@
+/* @font-face — self-hosted Geist Variable
+ * Source: docs/src/fonts/. font-display: optional minimises CLS by
+ * either using the font (if loaded within ~100ms) or staying on the
+ * fallback for the whole page lifetime. Pairs with size-adjust below. */
+@font-face {
+  font-family: 'Geist';
+  src: url('/fonts/Geist-Variable.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: optional;
+  size-adjust: 100%;
+}
+
+@font-face {
+  font-family: 'Geist Mono';
+  src: url('/fonts/GeistMono-Variable.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: optional;
+  size-adjust: 100%;
+}
+
+/* Design system tokens. Monochrome variant — no chromatic accent. */
+:root {
+  /* Palette — surfaces */
+  --bg: #0B0A09;
+  --bg-elevated: #1F1F24;
+  --bg-code: #0E0E12;
+  --bg-popover: #2A2A2F;
+
+  /* Palette — text */
+  --text-primary: #F2EFEA;
+  --text-secondary: rgba(242, 239, 234, 0.65);
+  /* Both bumped from #7A766F / #6B6B72 to clear WCAG AA contrast vs --bg
+     (was ~4.07:1 — failed normal-text 4.5:1). Now ~5.76:1 and ~4.83:1. */
+  --text-muted: #8E8A82;
+  --text-caption: #807C75;
+
+  /* Palette — accent (MONOCHROME — cream / pearl) */
+  --accent: #F2EFEA;
+  --accent-hover: #FFFFFF;
+  --accent-pressed: #C8C5BD;
+  --accent-subtle: rgba(242, 239, 234, 0.12);
+  --accent-deep: #C8C5BD;
+
+  /* Palette — secondary + borders + status */
+  --mint: #A8C97F;
+  --border: #1F1D1A;
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-default: rgba(255, 255, 255, 0.13);
+  --error: #E85050;
+
+  /* Typography — families */
+  --font-sans: 'Geist', -apple-system, 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, 'Cascadia Mono', monospace;
+
+  /* Typography — scale */
+  --type-display: 36px;
+  --type-h1: 28px;
+  --type-h2: 20px;
+  --type-body-lg: 16px;
+  --type-body: 14px;
+  --type-body-sm: 12px;
+  --type-caption: 11px;
+  --type-code-block: 13px;
+  --type-code-inline: 12.5px;
+
+  /* Typography — line height */
+  --line-height-body: 1.65;
+
+  /* Spacing — 4px base */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-12: 48px;
+  --s-16: 64px;
+
+  /* Radius */
+  --r-sm: 4px;
+  --r-md: 7px;
+  --r-lg: 10px;
+  --r-xl: 14px;
+  --r-2xl: 18px;
+  --radius-base: 8px;
+
+  /* Layout */
+  --max-content-width: 1140px;
+
+  /* Elevation */
+  --shadow-subtle: 0 2px 8px rgba(0, 0, 0, 0.25);
+  --shadow-elevated: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-accent-glow: 0 0 24px rgba(242, 239, 234, 0.18),
+                        0 4px 12px rgba(0, 0, 0, 0.35);
+
+  /* Effects */
+  --bg-noise: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' seed='5'/><feColorMatrix values='0 0 0 0 0.92  0 0 0 0 0.78  0 0 0 0 0.55  0 0 0 0.6 0'/></filter><rect width='160' height='160' filter='url(%23n)' opacity='0.02'/></svg>");
+  --lamp-glow-color: #F2EFEA;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-dur: 320ms;
+  --dur-fast: 150ms;
+  --dur-reveal: 720ms;
+  --dur-hero: 400ms;
+  /* gentle, glide-to-rest easing for scroll reveals (smoother than the
+     snappier --ease-out used for micro-interactions) */
+  --ease-reveal: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* Baseline reset / page chrome */
+html {
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--type-body);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Warm noise overlay — apply on a positioned element to add subtle texture */
+.bg-noise::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--bg-noise);
+  background-repeat: repeat;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Lamp glow — soft radial behind a positioned ancestor; restrict to hero use */
+.lamp-glow {
+  position: relative;
+}
+.lamp-glow::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 720px;
+  height: 720px;
+  background: radial-gradient(circle, var(--lamp-glow-color) 0%, transparent 60%);
+  opacity: 0.08;
+  filter: blur(20px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Reduced-motion: disable all animations + transitions */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-dur: 0ms;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

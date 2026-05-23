@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#0B0A09"/>
+
+  <!-- NookDB mark — Alt 1 geometry scaled to 200x200, positioned at x=120 y=140 -->
+  <!-- viewBox 48x48 → 200x200: scale = 200/48 ≈ 4.1667; stroke-width 4 scales with transform -->
+  <g transform="translate(120 140) scale(4.1667)" fill="none" stroke="#F2EFEA"
+     stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Left vertical stroke -->
+    <path d="M10 10 L10 38"/>
+    <!-- Shoulder arc + inward nook curve -->
+    <path d="M10 17 C10 11 20 10 26 16 L26 28 C26 33 30 34 34 34"/>
+    <!-- Right leg -->
+    <path d="M34 34 L34 38"/>
+    <!-- Data-stack lines inside cavity (stroke-width 2.5 scales proportionally) -->
+    <line x1="18" y1="24" x2="29" y2="24" stroke-width="2.5"/>
+    <line x1="18" y1="29" x2="27" y2="29" stroke-width="2.5"/>
+    <line x1="18" y1="34" x2="25" y2="34" stroke-width="2.5" opacity="0.6"/>
+  </g>
+
+  <!-- Wordmark: "nookwright" — 56pt Geist Sans 600 -->
+  <text x="380" y="200"
+        font-family="'Geist', 'Geist Sans', system-ui, sans-serif"
+        font-size="56" font-weight="600"
+        fill="#F2EFEA"
+        letter-spacing="-1">nookwright</text>
+
+  <!-- Product name: "nookdb" — 48pt Geist Mono 500 -->
+  <text x="380" y="260"
+        font-family="'Geist Mono', ui-monospace, monospace"
+        font-size="48" font-weight="500"
+        fill="#F2EFEA" opacity="0.65">nookdb</text>
+
+  <!-- Tagline — 36pt Geist Sans 500 -->
+  <text x="120" y="440"
+        font-family="'Geist', 'Geist Sans', system-ui, sans-serif"
+        font-size="36" font-weight="500"
+        fill="#F2EFEA">Local-first data with a memory.</text>
+
+  <!-- Subhead — 24pt Geist Sans 400 -->
+  <text x="120" y="490"
+        font-family="'Geist', 'Geist Sans', system-ui, sans-serif"
+        font-size="24" font-weight="400"
+        fill="#F2EFEA" opacity="0.65">A schema-first reactive database for Electron, built on a Rust core.</text>
+
+  <!-- pre-1.0 chip — rounded rect + label, matches the live header pill -->
+  <rect x="120" y="540" width="140" height="44" rx="8"
+        fill="none" stroke="#F2EFEA" stroke-width="2"/>
+  <!-- mint pulse dot (cosmetic; static in static export) -->
+  <circle cx="140" cy="562" r="4" fill="#A8C97F"/>
+  <text x="195" y="568"
+        font-family="'Geist Mono', ui-monospace, monospace"
+        font-size="20" font-weight="500"
+        fill="#F2EFEA" text-anchor="middle">pre-1.0</text>
+</svg>

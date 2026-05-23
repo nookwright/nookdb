@@ -1,0 +1,447 @@
+---
+import { copy } from '../lib/copy';
+const c = copy.story.live;
+---
+
+<section class="story-card-slot">
+  <div class="story-card story-card--live">
+    <div class="story-card__inner">
+      <h2 class="story-card__title">{c.title}</h2>
+      <p class="story-card__body" set:html={c.body.replace(/`(.+?)`/g, '<code>$1</code>')}></p>
+
+      <div class="sl" aria-label="A live query that re-renders itself as data changes elsewhere in the app">
+        <!-- ── Subscription: written once ──────────────────────────── -->
+        <div class="sl__pane sl__pane--code">
+          <div class="sl__chrome">
+            <span class="sl__dot sl__dot--r" aria-hidden="true"></span>
+            <span class="sl__dot sl__dot--y" aria-hidden="true"></span>
+            <span class="sl__dot sl__dot--g" aria-hidden="true"></span>
+            <span class="sl__filename">app.ts</span>
+          </div>
+          <pre class="sl__code"><span class="sl__kw">const</span> todos = db.todos.<span class="sl__fn">live</span>({'{'} done: <span class="sl__kw">false</span> {'}'})
+
+<span class="sl__kw">const</span> unsub = todos.<span class="sl__sub">subscribe</span>(render)
+<span class="sl__dim">// later: unsub()</span></pre>
+        </div>
+
+        <!-- ── The bus: a pulse travels from subscription to result ── -->
+        <div class="sl__bus" aria-hidden="true">
+          <div class="sl__wire">
+            <span class="sl__pulse" data-sl-pulse></span>
+          </div>
+        </div>
+
+        <!-- ── Live result: re-renders itself ──────────────────────── -->
+        <div class="sl__pane sl__pane--result">
+          <div class="sl__chrome sl__chrome--result">
+            <span class="sl__live">
+              <span class="sl__live-dot" aria-hidden="true"></span>live
+            </span>
+            <span class="sl__rerenders">re-renders&nbsp;<b data-sl-count>0</b></span>
+          </div>
+          <!-- mutation-elsewhere event strip — sits above the rows -->
+          <div class="sl__event" data-sl-event>
+            <span class="sl__event-kind">mutation · elsewhere</span>
+            <code class="sl__event-code" data-sl-eventcode>db.todos.insert(…)</code>
+          </div>
+          <ul class="sl__list" data-sl-list aria-live="polite"></ul>
+          <div class="sl__footnote">
+            <span class="sl__footnote-net">{c.networkFootnote}</span>
+            <span class="sl__footnote-how">{c.mechanism}</span>
+          </div>
+        </div>
+
+        <!-- ── Controls: the visitor drives the live query themselves ── -->
+        <div class="sl__controls" role="group" aria-label="Drive the live query yourself">
+          <span class="sl__controls-hint" aria-hidden="true">your turn →</span>
+          <button class="sl__btn" type="button" data-sl-action="insert">insert todo</button>
+          <button class="sl__btn" type="button" data-sl-action="complete">complete top</button>
+          <button class="sl__btn sl__btn--ghost" type="button" data-sl-action="reset">reset</button>
+        </div>
+
+        <p class="sl__caveat">{c.caveat}</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<link rel="stylesheet" href="/src/styles/story-cards.css" />
+<script>
+  import '../scripts/story-cards.ts';
+  import '../scripts/story-live.ts';
+</script>
+
+<style>
+  /* ── Stage ───────────────────────────────────────────────────────── */
+  .sl {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 96px minmax(0, 1fr);
+    align-items: center;
+    gap: 0;
+    max-width: 960px;
+    width: 100%;
+    margin: 36px auto 0;
+  }
+
+  /* ── Panels (shared chrome) ──────────────────────────────────────── */
+  .sl__pane {
+    background: var(--bg-code);
+    border: 1px solid var(--border-default);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-elevated);
+  }
+
+  .sl__chrome {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--bg-popover);
+  }
+
+  .sl__chrome--result { justify-content: space-between; }
+
+  .sl__dot { width: 9px; height: 9px; border-radius: 50%; opacity: 0.6; }
+  .sl__dot--r { background: #B85F4F; }
+  .sl__dot--y { background: #C8A04E; }
+  .sl__dot--g { background: #6A8E5A; }
+
+  .sl__filename {
+    margin-left: 6px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--text-secondary);
+    letter-spacing: 0.02em;
+  }
+
+  /* ── Code pane ───────────────────────────────────────────────────── */
+  .sl__code {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.85;
+    color: var(--text-primary);
+    margin: 0;
+    padding: 18px 20px;
+    white-space: pre;
+    background: transparent;
+  }
+  .sl__kw { color: var(--text-secondary); }
+  .sl__fn { color: var(--text-primary); font-weight: 600; }
+  .sl__dim { color: var(--text-muted); opacity: 0.8; }
+
+  /* the subscribe callback — flashes each time it "fires" */
+  .sl__sub {
+    color: var(--mint);
+    font-weight: 600;
+    border-radius: 3px;
+    transition: background var(--dur-fast) var(--ease-out),
+                color var(--dur-fast) var(--ease-out);
+  }
+  .sl__sub.is-fired {
+    background: var(--mint);
+    color: var(--bg);
+  }
+
+  /* ── Bus: mutation source + wire + pulse ─────────────────────────── */
+  .sl__bus {
+    position: relative;
+    height: 100%;
+    min-height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* horizontal wire across the gutter */
+  .sl__wire {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    transform: translateY(-50%);
+    background: linear-gradient(to right, transparent, var(--border-default) 20%, var(--border-default) 80%, transparent);
+  }
+
+  .sl__pulse {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--mint);
+    box-shadow: 0 0 9px var(--mint);
+    opacity: 0;
+  }
+  .sl__pulse.is-traveling {
+    animation: sl-travel 620ms var(--ease-out) forwards;
+  }
+  @keyframes sl-travel {
+    0%   { left: 0;    opacity: 0; }
+    15%  { opacity: 1; }
+    85%  { opacity: 1; }
+    100% { left: 100%; opacity: 0; }
+  }
+
+  /* mutation-elsewhere event strip — in-flow, above the rows */
+  .sl__event {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+    border-left: 2px solid transparent;
+    background: var(--bg);
+    opacity: 0.55;
+    transition: opacity var(--dur-fast) var(--ease-out),
+                border-color var(--dur-fast) var(--ease-out),
+                background var(--dur-fast) var(--ease-out);
+  }
+  .sl__event.is-firing {
+    opacity: 1;
+    border-left-color: var(--mint);
+    background: rgba(168, 201, 127, 0.06);
+  }
+  .sl__event-kind {
+    flex: none;
+    font-family: var(--font-mono);
+    font-size: 8.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--text-muted);
+  }
+  .sl__event-code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    background: transparent;
+  }
+
+  /* ── Result pane ─────────────────────────────────────────────────── */
+  .sl__live {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--text-secondary);
+  }
+  .sl__live-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--mint);
+    box-shadow: 0 0 7px var(--mint);
+    animation: sl-pulse 2.2s ease-in-out infinite;
+  }
+  @keyframes sl-pulse {
+    0%, 100% { opacity: 0.45; transform: scale(0.85); }
+    50%      { opacity: 1;    transform: scale(1.2); }
+  }
+  .sl__rerenders {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+  }
+  .sl__rerenders b { color: var(--mint); font-weight: 600; }
+
+  .sl__list {
+    list-style: none;
+    margin: 0;
+    padding: 6px;
+    min-height: 132px;
+  }
+
+  /* Rows are created by story-live.ts at runtime, so their selectors must be
+     :global() — Astro's scoped attribute is never applied to JS-built nodes. */
+  :global(.sl__row) {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 9px 12px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text-primary);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  :global(.sl__check) {
+    flex: none;
+    width: 13px; height: 13px;
+    border: 1.5px solid var(--text-muted);
+    border-radius: 4px;
+    transition: background var(--dur-fast) var(--ease-out),
+                border-color var(--dur-fast) var(--ease-out);
+  }
+  :global(.sl__row-title) { transition: color var(--dur-fast) var(--ease-out); }
+
+  /* enter: slide+fade in with a mint flash */
+  :global(.sl__row--enter) {
+    animation: none;
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  :global(.sl__row:not(.sl__row--enter)) {
+    animation: sl-row-in 520ms var(--ease-out);
+  }
+  @keyframes sl-row-in {
+    0%   { opacity: 0; transform: translateY(8px); background: rgba(168,201,127,0.16); }
+    60%  { background: rgba(168,201,127,0.16); }
+    100% { opacity: 1; transform: translateY(0); background: transparent; }
+  }
+
+  /* update done:true — check fills, title strikes through */
+  :global(.sl__row--done .sl__check) {
+    background: var(--mint);
+    border-color: var(--mint);
+  }
+  :global(.sl__row--done .sl__row-title) {
+    color: var(--text-muted);
+    text-decoration: line-through;
+  }
+
+  /* exit: collapse out of the filtered view */
+  :global(.sl__row--exit) {
+    animation: sl-row-out 360ms var(--ease-out) forwards;
+  }
+  @keyframes sl-row-out {
+    0%   { opacity: 1; max-height: 40px; padding-top: 9px; padding-bottom: 9px; }
+    100% { opacity: 0; max-height: 0; padding-top: 0; padding-bottom: 0; transform: translateX(12px); }
+  }
+
+  .sl__footnote {
+    padding: 12px 16px;
+    border-top: 1px solid var(--border-subtle);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+    background: var(--bg-popover);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .sl__footnote-net {
+    color: var(--text-secondary);
+    letter-spacing: 0.06em;
+  }
+  .sl__footnote-how {
+    font-size: 10.5px;
+    line-height: 1.5;
+    opacity: 0.85;
+  }
+
+  /* ── Controls: visitor-driven mutations ──────────────────────────── */
+  .sl__controls {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 28px;
+  }
+
+  .sl__controls-hint {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--text-muted);
+    margin-right: 4px;
+    opacity: 0.7;
+    transition: color var(--dur-fast) var(--ease-out),
+                opacity var(--dur-fast) var(--ease-out);
+  }
+  /* once the visitor takes over, the hint brightens to mint */
+  .sl.is-driven .sl__controls-hint {
+    color: var(--mint);
+    opacity: 1;
+  }
+
+  .sl__btn {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-secondary);
+    background: var(--bg-code);
+    border: 1px solid var(--border-default);
+    border-radius: var(--r-md);
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: color var(--dur-fast) var(--ease-out),
+                border-color var(--dur-fast) var(--ease-out),
+                background var(--dur-fast) var(--ease-out);
+  }
+  .sl__btn:hover {
+    color: var(--bg);
+    background: var(--mint);
+    border-color: var(--mint);
+  }
+  .sl__btn:focus-visible {
+    outline: 2px solid var(--mint);
+    outline-offset: 2px;
+  }
+
+  .sl__btn--ghost {
+    color: var(--text-muted);
+  }
+  .sl__btn--ghost:hover {
+    color: var(--text-primary);
+    background: transparent;
+    border-color: var(--border-strong, var(--border-default));
+  }
+
+  /* honest framing under the controls — this is not a real nookdb instance */
+  .sl__caveat {
+    grid-column: 1 / -1;
+    margin: 12px 0 0;
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+    opacity: 0.75;
+  }
+
+  /* ── Mobile: stack code → vertical bus → result ──────────────────── */
+  @media (max-width: 880px) {
+    .sl {
+      grid-template-columns: 1fr;
+      gap: 0;
+      margin-top: 24px;
+    }
+    .sl__bus {
+      min-height: 92px;
+      height: 92px;
+    }
+    .sl__wire {
+      top: 0; bottom: 0; left: 50%; right: auto;
+      width: 1px; height: 100%;
+      transform: translateX(-50%);
+      background: linear-gradient(to bottom, transparent, var(--border-default), transparent);
+    }
+    .sl__pulse.is-traveling { animation: sl-travel-v 620ms var(--ease-out) forwards; }
+    @keyframes sl-travel-v {
+      0%   { top: 0; left: 50%; opacity: 0; }
+      15%  { opacity: 1; }
+      85%  { opacity: 1; }
+      100% { top: 100%; left: 50%; opacity: 0; }
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sl__pulse, .sl__live-dot { animation: none; opacity: 0; }
+    .sl__live-dot { opacity: 1; }
+    :global(.sl__row:not(.sl__row--enter)) { animation: none; }
+  }
+</style>

@@ -1,0 +1,304 @@
+---
+import { copy } from '../lib/copy';
+import NookMark from './marks/NookMark.astro';
+import NookJSMark from './marks/NookJSMark.astro';
+import NookSecurityMark from './marks/NookSecurityMark.astro';
+
+interface Props {
+  size?: 'sm' | 'md' | 'lg';
+  class?: string;
+}
+
+const { size = 'md', class: className } = Astro.props;
+
+// Map family entry names to their mark components + mark sizes
+const markSize = 22;
+
+function getMarkForEntry(name: string): 'nookdb' | 'nookjs' | 'nooksecurity' {
+  switch (name) {
+    case 'NookDB':       return 'nookdb';
+    case 'NookJS':       return 'nookjs';
+    case 'NookSecurity': return 'nooksecurity';
+    default:             return 'nookdb';
+  }
+}
+
+const entries = copy.family.entries;
+---
+
+<div class:list={['wordmark-lockup', `wordmark-lockup--${size}`, className]}>
+  <a
+    href="/"
+    class="wordmark-lockup__anchor"
+    aria-label={`${copy.brand.parent} — home`}
+    aria-haspopup="menu"
+  >
+    <span class="wordmark-lockup__parent">{copy.brand.parent}</span>
+    <span class="wordmark-lockup__product">{copy.brand.product}</span>
+  </a>
+
+  <div class="family" role="menu" aria-label="Nookwright product family">
+    <div class="family__head" aria-hidden="true">Nookwright family</div>
+
+    {entries.map((entry) => {
+      const mark = getMarkForEntry(entry.name);
+      const isActive = entry.status === 'active';
+      const pillClass = `pill pill--${entry.status}`;
+      const inner = (
+        <>
+          <span class="family__item-mark">
+            {mark === 'nookdb'       && <NookMark size={markSize} />}
+            {mark === 'nookjs'       && <NookJSMark size={markSize} />}
+            {mark === 'nooksecurity' && <NookSecurityMark size={markSize} />}
+          </span>
+          <div class="family__item-content">
+            <div class="family__item-row1">
+              <span class="family__item-name">{entry.name}</span>
+              <span class={pillClass}>{entry.status}</span>
+            </div>
+            <p class="family__item-desc">{entry.desc}</p>
+          </div>
+        </>
+      );
+
+      return entry.href !== null && isActive ? (
+        <a href={entry.href} class="family__item family__item--active" role="menuitem">
+          {inner}
+        </a>
+      ) : (
+        <span class="family__item family__item--future" role="menuitem" aria-disabled="true">
+          {inner}
+        </span>
+      );
+    })}
+
+    <div class="family__foot">
+      <a
+        href="https://github.com/nookwright"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="family__foot-link"
+      >
+        Follow Nookwright on GitHub →
+      </a>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* ─── Wrapper ─────────────────────────────────────────────────────── */
+  .wordmark-lockup {
+    position: relative;
+    display: inline-block;
+  }
+
+  /* ─── Anchor ──────────────────────────────────────────────────────── */
+  .wordmark-lockup__anchor {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    text-decoration: none;
+    color: var(--text-primary);
+    outline: none;
+  }
+
+  .wordmark-lockup__parent {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    color: var(--text-primary);
+  }
+  .wordmark-lockup__product {
+    font-family: var(--font-mono);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+    color: var(--text-secondary);
+  }
+
+  /* Size variants */
+  .wordmark-lockup--sm .wordmark-lockup__parent { font-size: 14px; }
+  .wordmark-lockup--sm .wordmark-lockup__product { font-size: 11px; }
+  .wordmark-lockup--md .wordmark-lockup__parent { font-size: 18px; }
+  .wordmark-lockup--md .wordmark-lockup__product { font-size: 14px; }
+  .wordmark-lockup--lg .wordmark-lockup__parent { font-size: 28px; }
+  .wordmark-lockup--lg .wordmark-lockup__product { font-size: 20px; }
+
+  /* ─── Family dropdown ─────────────────────────────────────────────── */
+  .family {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 0;
+    width: 320px;
+    background: var(--bg-popover);
+    border: 1px solid var(--border-default);
+    border-radius: var(--r-md);
+    box-shadow: var(--shadow-elevated);
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    z-index: 100;
+
+    /* Hidden by default */
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-4px);
+    transition:
+      opacity var(--motion-dur) var(--ease-out),
+      transform var(--motion-dur) var(--ease-out),
+      visibility 0s linear var(--motion-dur);
+  }
+
+  /* Reveal on hover or keyboard focus-within the lockup */
+  .wordmark-lockup:hover .family,
+  .wordmark-lockup:focus-within .family {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    transition:
+      opacity var(--motion-dur) var(--ease-out),
+      transform var(--motion-dur) var(--ease-out),
+      visibility 0s linear 0s;
+  }
+
+  /* ─── Panel header tag ────────────────────────────────────────────── */
+  .family__head {
+    padding: 8px 10px 6px;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--text-caption);
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 4px;
+  }
+
+  /* ─── Family items ────────────────────────────────────────────────── */
+  .family__item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 9px 10px;
+    border-radius: var(--r-sm);
+    text-decoration: none;
+    color: var(--text-primary);
+    cursor: default;
+    transition: background var(--dur-fast) var(--ease-out);
+  }
+  a.family__item { cursor: pointer; }
+  a.family__item:hover { background: rgba(168, 201, 127, 0.06); }
+  a.family__item:focus-visible {
+    outline: 2px solid var(--mint);
+    outline-offset: -2px;
+    background: rgba(168, 201, 127, 0.06);
+  }
+  /* future products read as sketches — dimmer name, dimmer desc, lower opacity */
+  .family__item--future { opacity: 0.66; }
+
+  .family__item-mark {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+    color: var(--text-primary);
+  }
+
+  .family__item-content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .family__item-row1 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .family__item-name {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .family__item-desc {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--text-muted);
+    margin: 0;
+  }
+
+  /* ─── Status pills ────────────────────────────────────────────────── */
+  .pill {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 999px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-left: auto;
+  }
+  .pill--active {
+    background: var(--mint);
+    color: var(--bg);
+  }
+  /* planned: solid hairline border, visible but quiet */
+  .pill--planned {
+    background: transparent;
+    border: 1px solid var(--border-default);
+    color: var(--text-secondary);
+  }
+  /* concept: dashed hairline border, slightly dimmer — "less pinned down" */
+  .pill--concept {
+    background: transparent;
+    border: 1px dashed var(--border-default);
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+  }
+
+  /* ─── Footer link ─────────────────────────────────────────────────── */
+  .family__foot {
+    margin-top: 4px;
+    padding: 8px 10px;
+    border-top: 1px solid var(--border-subtle);
+  }
+  .family__foot-link {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    letter-spacing: 0.02em;
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+  .family__foot-link:hover { color: var(--accent); }
+
+  /* ─── Reduced motion ──────────────────────────────────────────────── */
+  @media (prefers-reduced-motion: reduce) {
+    .family,
+    .wordmark-lockup:hover .family,
+    .wordmark-lockup:focus-within .family {
+      transition: none;
+      transform: none;
+    }
+  }
+
+  /* ─── Mobile — let the dropdown wrap; never push off-screen ──────── */
+  @media (max-width: 560px) {
+    .family {
+      width: min(320px, calc(100vw - 32px));
+    }
+  }
+</style>

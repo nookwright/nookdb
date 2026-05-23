@@ -1,0 +1,168 @@
+---
+import WordmarkLockup from './WordmarkLockup.astro';
+import { copy } from '../lib/copy';
+
+const { nav, hero } = copy;
+---
+
+<header class="site-header" role="banner">
+  <div class="site-header__inner">
+    <WordmarkLockup size="md" />
+
+    <nav class="site-header__nav" aria-label="Main">
+      {nav.links.map((link) => (
+        <a href={link.href} class="site-header__nav-link">{link.label}</a>
+      ))}
+
+      <a
+        href="/architecture/overview/"
+        class="version-pill"
+        title="Pre-1.0 — API still settling. Pin exact versions in production."
+        aria-label="NookDB is pre-1.0 — click for the architecture overview"
+      >
+        <span class="version-pill__dot" aria-hidden="true"></span>
+        <span class="version-pill__label">{hero.versionPill}</span>
+      </a>
+    </nav>
+  </div>
+</header>
+
+<style>
+  /* ─── Header shell ────────────────────────────────────────────────────────── */
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    background: rgba(11, 10, 9, 0.85);
+  }
+
+  /* ─── Inner container ─────────────────────────────────────────────────────── */
+  .site-header__inner {
+    max-width: var(--max-content-width);
+    margin: 0 auto;
+    padding: 16px 24px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  /* ─── Nav row (right side) ────────────────────────────────────────────────── */
+  .site-header__nav {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 24px;
+  }
+
+  /* ─── Nav links ───────────────────────────────────────────────────────────── */
+  .site-header__nav-link {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition:
+      color var(--motion-dur) var(--ease-out);
+  }
+
+  .site-header__nav-link:hover {
+    color: var(--text-primary);
+  }
+
+  /* ─── Version pill ────────────────────────────────────────────────────────
+   * Reads as a live status badge: mint pulse dot + label + cream border.
+   * Hover lifts the border to mint so the pill and its dot share a colour
+   * identity (the "live thing got attention"). */
+  .version-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 4px 11px 4px 9px;
+    border-radius: 999px;
+    border: 1px solid var(--border-default);
+    background: rgba(168, 201, 127, 0.04);
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition:
+      border-color var(--motion-dur) var(--ease-out),
+      color var(--motion-dur) var(--ease-out),
+      background var(--motion-dur) var(--ease-out);
+  }
+
+  .version-pill:hover {
+    border-color: rgba(168, 201, 127, 0.55);
+    color: var(--text-primary);
+    background: rgba(168, 201, 127, 0.08);
+  }
+
+  .version-pill:focus-visible {
+    outline: 2px solid var(--mint);
+    outline-offset: 2px;
+  }
+
+  /* Pulse dot — gentle 2.4s breathe, mint, faint glow. The "actively
+     shipping" signal: the version is moving, the API is breathing. */
+  .version-pill__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--mint);
+    box-shadow: 0 0 6px rgba(168, 201, 127, 0.7);
+    flex: none;
+    animation: version-pulse 2.4s ease-in-out infinite;
+  }
+
+  @keyframes version-pulse {
+    0%, 100% { opacity: 1;    transform: scale(1); }
+    50%      { opacity: 0.42; transform: scale(0.82); }
+  }
+
+  .version-pill__label {
+    line-height: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .version-pill__dot { animation: none; opacity: 1; }
+  }
+
+  /* ─── Mobile (<880px) ─────────────────────────────────────────────────────── */
+  @media (max-width: 879px) {
+    .site-header__inner {
+      padding: 12px 16px;
+    }
+
+    .site-header__nav {
+      gap: 16px;
+    }
+
+    .site-header__nav-link {
+      font-size: 12px;
+    }
+
+    .version-pill {
+      font-size: 10px;
+    }
+  }
+
+  /* ─── Narrow (<600px) ──────────────────────────────────────────────────────
+   * The two-line wordmark + 3 nav links + pill don't fit on phone widths and
+   * collide. Hide the secondary nav links (Docs, Architecture) — both remain
+   * one tap away via the GitHub repo / the version pill linking to /architecture.
+   */
+  @media (max-width: 599px) {
+    .site-header__nav > a:nth-child(-n + 2) {
+      display: none;
+    }
+    .site-header__nav {
+      gap: 12px;
+    }
+  }
+</style>
