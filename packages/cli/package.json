@@ -2,6 +2,13 @@
   "name": "@nookdb/cli",
   "version": "0.0.0-pre.m5a",
   "description": "Command-line interface for nookdb — backup, restore, migrate, inspect.",
+  "homepage": "https://github.com/nookwright/nookdb/tree/main/packages/cli#readme",
+  "keywords": ["nookdb", "cli", "database", "backup", "migrate"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nookwright/nookdb.git",
+    "directory": "packages/cli"
+  },
   "type": "module",
   "license": "MIT",
   "bin": {
