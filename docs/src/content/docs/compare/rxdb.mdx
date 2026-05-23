@@ -1,0 +1,28 @@
+---
+title: NookDB vs RxDB
+description: A short, honest comparison of NookDB and RxDB.
+---
+
+## Pick RxDB if...
+
+- You need your database to run in the browser, Node.js, or React Native simultaneously.
+- Server sync is a core requirement and you want a battle-tested replication protocol.
+- Your team is already deep in the RxJS ecosystem and reactive streams are how you think.
+
+## Pick NookDB if...
+
+- You are building an Electron desktop app and the database lives only on that machine.
+- You need Rust-backed ACID durability without a cloud dependency in the critical path.
+- Schema-first TypeScript types matter more than an observable pipeline.
+
+## Where they overlap
+
+Both RxDB and NookDB treat the schema as the source of truth: you declare your collections and field types up front, and the library enforces them at runtime. Both expose reactive query primitives so your UI can re-render when data changes without manual polling. Both are embedded — no separate database server process to manage. If you have tried one, the mental model of the other will feel familiar within an afternoon.
+
+## What's genuinely different
+
+RxDB's architecture is built around sync. Its storage layer is an abstraction over pluggable backends (IndexedDB, SQLite, LokiJS), and the replication protocol is a first-class citizen. NookDB does not do sync at all — deliberately. The storage layer is a single Rust crate built on redb, a memory-mapped B-tree with crash-safe writes. That constraint lets NookDB make stronger per-write durability guarantees than any pluggable-backend design can make uniformly. If your workload is one machine, no cloud, NookDB keeps that surface area small.
+
+---
+
+*— Ömer, Nookwright*

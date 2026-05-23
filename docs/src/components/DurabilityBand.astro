@@ -1,0 +1,271 @@
+---
+/**
+ * DurabilityBand — the trust block. Two panels:
+ *   1. crash safety — "survives kill -9" with a mini SIGKILL→reopen terminal
+ *   2. data ownership — "your data is just a file" with a file chip
+ * Matte panels, mint = safe/intact. Reveals on scroll via durability-band.ts.
+ */
+import { copy } from '../lib/copy';
+const c = copy.durability;
+---
+
+<section class="dura section-reveal reveal-stagger" aria-label="Durability and data ownership">
+  <div class="dura__inner">
+    <h2 class="dura__heading reveal-item" style="--rev-i: 0">{c.heading}</h2>
+
+    <div class="dura__grid">
+      <!-- ── CRASH SAFETY ───────────────────────────────────────────── -->
+      <article class="dura__panel reveal-item" style="--rev-i: 1">
+        <header class="dura__head">
+          <span class="dura__kind">{c.crash.kind}</span>
+          <h3 class="dura__title">{c.crash.title}</h3>
+        </header>
+
+        <!-- mini terminal: kill mid-write, reopen, data intact -->
+        <div class="dura__term" aria-hidden="true">
+          <pre class="dura__term-pre"><span class="dura__cmd"><span class="dura__prompt">$</span> kill -9 $(pgrep app)</span>
+<span class="dura__sig">[process killed mid-write]</span>
+
+<span class="dura__cmd"><span class="dura__prompt">$</span> app restart</span>
+<span class="dura__line"><span class="dura__ok">✓</span> db.todos.find() → 1,402 rows</span>
+<span class="dura__line dura__line--muted">  no torn writes · no corruption</span></pre>
+        </div>
+
+        <p class="dura__body" set:html={c.crash.body.replace(/`(.+?)`/g, '<code>$1</code>')}></p>
+      </article>
+
+      <!-- ── DATA OWNERSHIP ─────────────────────────────────────────── -->
+      <article class="dura__panel reveal-item" style="--rev-i: 2">
+        <header class="dura__head">
+          <span class="dura__kind">{c.ownership.kind}</span>
+          <h3 class="dura__title">{c.ownership.title}</h3>
+        </header>
+
+        <!-- file chip: it lives on disk, it's yours — one file per OS userData dir -->
+        <div class="dura__file" aria-hidden="true">
+          <span class="dura__file-icon">▤</span>
+          <span class="dura__file-meta">
+            <span class="dura__file-path"><span class="dura__file-tag">macOS</span>~/Library/Application&nbsp;Support/app/app.nook</span>
+            <span class="dura__file-path"><span class="dura__file-tag">Windows</span>%APPDATA%\app\app.nook</span>
+            <span class="dura__file-path"><span class="dura__file-tag">Linux</span>~/.config/app/app.nook</span>
+            <span class="dura__file-sub">single file · ~4 MB at 1k rows · yours to copy, back up, inspect</span>
+          </span>
+        </div>
+
+        <p class="dura__body" set:html={c.ownership.body.replace(/`(.+?)`/g, '<code>$1</code>')}></p>
+        <p class="dura__note"><span class="dura__note-mark" aria-hidden="true">!</span>{c.securityNote}</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<style>
+  .dura {
+    /* hugs the Architecture above — trust zone reads as one continuous beat */
+    padding: 64px 24px 96px;
+  }
+
+  .dura__inner {
+    max-width: 1040px;
+    margin: 0 auto;
+  }
+
+  .dura__heading {
+    font-family: var(--font-sans);
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-align: center;
+    letter-spacing: -0.01em;
+    margin: 0 0 56px 0;
+  }
+
+  .dura__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  /* ── Panels ──────────────────────────────────────────────────────── */
+  .dura__panel {
+    position: relative;
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 28px 28px 26px;
+    overflow: hidden;
+  }
+
+  /* faint mint wash in the corner — the "safe" signal, kept subtle */
+  .dura__panel::before {
+    content: '';
+    position: absolute;
+    top: -40%;
+    right: -20%;
+    width: 60%;
+    height: 80%;
+    background: radial-gradient(circle, rgba(168, 201, 127, 0.10) 0%, transparent 62%);
+    filter: blur(30px);
+    pointer-events: none;
+  }
+
+  .dura__head {
+    margin-bottom: 18px;
+  }
+
+  .dura__kind {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--text-caption);
+    margin-bottom: 9px;
+  }
+
+  .dura__title {
+    font-family: var(--font-sans);
+    font-size: 21px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+
+  /* ── Crash terminal ──────────────────────────────────────────────── */
+  .dura__term {
+    background: var(--bg);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+    padding: 14px 16px;
+    margin-bottom: 18px;
+  }
+
+  .dura__term-pre {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.85;
+    color: var(--text-secondary);
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .dura__prompt { color: var(--mint); margin-right: 7px; }
+  .dura__cmd    { color: var(--text-primary); display: block; }
+  .dura__sig    { color: var(--error); display: block; opacity: 0.85; }
+  .dura__line   { display: block; }
+  .dura__line--muted { color: var(--text-muted); }
+  .dura__ok     { color: var(--mint); font-weight: 600; margin-right: 6px; }
+
+  /* ── File chip ───────────────────────────────────────────────────── */
+  .dura__file {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--bg);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+    padding: 16px 18px;
+    margin-bottom: 18px;
+  }
+
+  .dura__file-icon {
+    flex: none;
+    font-size: 22px;
+    color: var(--mint);
+    line-height: 1;
+  }
+
+  .dura__file-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .dura__file-path {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-primary);
+    line-height: 1.45;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .dura__file-tag {
+    flex: none;
+    width: 56px;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--text-caption);
+  }
+
+  .dura__file-sub {
+    margin-top: 5px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+  }
+
+  /* ── Body copy ───────────────────────────────────────────────────── */
+  .dura__body {
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.62;
+    color: var(--text-muted);
+    margin: 0;
+  }
+  .dura__body code {
+    font-family: var(--font-mono);
+    font-size: 0.88em;
+    background: var(--accent-subtle);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-secondary);
+  }
+
+  /* honest caveat — at-rest encryption isn't here yet */
+  .dura__note {
+    display: flex;
+    align-items: baseline;
+    gap: 9px;
+    margin: 16px 0 0;
+    padding-top: 14px;
+    border-top: 1px solid var(--border-subtle);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1.55;
+    color: var(--text-muted);
+    letter-spacing: 0.01em;
+  }
+  .dura__note-mark {
+    flex: none;
+    width: 15px; height: 15px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    background: var(--accent-subtle);
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 10px;
+  }
+
+  /* ── Mobile ──────────────────────────────────────────────────────── */
+  @media (max-width: 880px) {
+    .dura { padding: 72px 20px; }
+    .dura__heading { font-size: 24px; margin-bottom: 40px; }
+    .dura__grid { grid-template-columns: 1fr; gap: 18px; }
+  }
+</style>
+
+<script>
+  import '../scripts/reveal.ts';
+</script>

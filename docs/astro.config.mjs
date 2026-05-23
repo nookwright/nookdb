@@ -9,7 +9,7 @@ export default defineConfig({
       description: 'Schema-first, reactive, local-first database for Electron.',
       logo: { src: './src/assets/logo.svg' },
       social: {
-        github: 'https://github.com/omerarslan0/nookdb',
+        github: 'https://github.com/nookwright/nookdb',
       },
       sidebar: [
         { label: 'Quick start', link: '/quick-start/' },
@@ -40,8 +40,17 @@ export default defineConfig({
             { label: 'Overview', link: '/architecture/overview/' },
           ],
         },
+        {
+          label: 'Compare',
+          items: [
+            { label: 'vs RxDB', link: '/compare/rxdb/' },
+            { label: 'vs Jazz', link: '/compare/jazz/' },
+            { label: 'vs Dexie', link: '/compare/dexie/' },
+            { label: 'vs better-sqlite3', link: '/compare/better-sqlite3/' },
+          ],
+        },
       ],
-      customCss: [],
+      customCss: ['./src/styles/starlight-overrides.css'],
     }),
   ],
 });

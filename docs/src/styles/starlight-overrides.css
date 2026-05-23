@@ -1,0 +1,55 @@
+/* Minimal Starlight theme alignment with the M6 landing brand.
+ *
+ * Monochrome variant: Starlight's accent is retuned to the landing's
+ * cream/text-primary tone so docs feel like a continuation of the home page.
+ * Anything beyond accent stays in Starlight's default theme to avoid
+ * regressing docs readability. */
+
+:root, :root[data-theme='dark'] {
+  --sl-color-accent:      #F2EFEA;
+  --sl-color-accent-high: #FFFFFF;
+  --sl-color-accent-low:  rgba(242, 239, 234, 0.12);
+  --sl-color-text-accent: #F2EFEA;
+}
+
+/* Bridge the docs background tone with the landing's warm near-black. */
+:root[data-theme='dark'] {
+  --sl-color-bg: #0B0A09;
+}
+
+/* ── Brand tokens exposed for embedded landing components (e.g.
+ *    ArchitectureDiagramInline) used inside Starlight MDX prose.
+ *    Mirrors values in src/styles/tokens.css. Kept minimal — only what
+ *    docs-embedded components actually reach for. */
+:root, :root[data-theme='dark'] {
+  /* Surfaces */
+  --bg-elevated:        #1F1F24;
+  --bg-code:            #0E0E12;
+
+  /* Text */
+  --text-primary:       #F2EFEA;
+  --text-secondary:     rgba(242, 239, 234, 0.65);
+  --text-muted:         #8E8A82;
+
+  /* Accent (monochrome cream) + mint flow accent */
+  --accent:             #F2EFEA;
+  --accent-hover:       #FFFFFF;
+  --accent-subtle:      rgba(242, 239, 234, 0.12);
+  --mint:               #A8C97F;
+
+  /* Borders + lamp glow */
+  --border-default:     rgba(255, 255, 255, 0.13);
+  --lamp-glow-color:    #F2EFEA;
+
+  /* Type + motion */
+  --font-mono:          'Geist Mono', ui-monospace, 'Cascadia Mono', monospace;
+  --motion-dur:         320ms;
+  --dur-fast:           150ms;
+  --ease-out:           cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Radii */
+  --r-sm:               4px;
+  --s-4:                16px;
+  --s-6:                24px;
+  --s-8:                32px;
+}

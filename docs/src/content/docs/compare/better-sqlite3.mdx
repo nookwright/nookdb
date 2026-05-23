@@ -1,0 +1,28 @@
+---
+title: NookDB vs better-sqlite3
+description: A short, honest comparison of NookDB and better-sqlite3.
+---
+
+## Pick better-sqlite3 if...
+
+- SQL is the right query language for your workload and you want full expressive power.
+- You have heavy analytical queries — aggregations, joins, window functions — where SQL shines.
+- You prefer a synchronous API and are comfortable managing transactions in raw SQL strings.
+
+## Pick NookDB if...
+
+- You want a typed schema DSL instead of writing SQL strings by hand.
+- Live reactive subscriptions (`live()`) are a requirement, not a nice-to-have.
+- You want a multi-process Electron bridge built into the library rather than built by you.
+
+## Where they overlap
+
+Both better-sqlite3 and NookDB are embedded native libraries for Node.js — no separate database server, no TCP connection, no network latency. Both compile to a `.node` binary and are designed for Electron's main process. Both support transactions and give you crash-safe durability on modern file systems. If raw performance is the benchmark, both are in the same tier: the overhead is native-to-JS boundary crossing, not query planning.
+
+## What's genuinely different
+
+better-sqlite3 exposes SQLite directly, which means your schema lives in SQL DDL strings and your queries are SQL text. That is a deliberate choice and a good one for teams who want the full power of a relational query engine. NookDB makes the opposite bet: no SQL, no strings, all types. The schema DSL produces TypeScript types at definition time, and the query API (`find`, `findOne`, `insert`, `update`, `delete`) is fully typed from those definitions. The trade-off is that NookDB's query language is intentionally narrower than SQL — but it ships `live()` reactive subscriptions and a multi-process Electron bridge as first-class primitives that you would otherwise have to build yourself on top of better-sqlite3.
+
+---
+
+*— Ömer, Nookwright*

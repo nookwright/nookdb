@@ -3,16 +3,34 @@ title: Quick start
 description: Install nookdb and open your first database in under a minute.
 ---
 
-import { Steps } from '@astrojs/starlight/components';
+import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-nookdb is a Rust-powered, schema-first, reactive local database for Electron desktop apps. This page gets you to a working database in three steps.
+nookdb is a Rust-powered, schema-first, reactive local database for Electron desktop apps. This page gets you to a working database in three steps, then shows the two things you'll reach for next: the Electron bridge and typed errors.
 
 ## Install
 
-```bash
-pnpm add nookdb
-# or: npm install nookdb / yarn add nookdb
-```
+<Tabs syncKey="pkg">
+  <TabItem label="pnpm">
+    ```bash
+    pnpm add nookdb
+    ```
+  </TabItem>
+  <TabItem label="npm">
+    ```bash
+    npm install nookdb
+    ```
+  </TabItem>
+  <TabItem label="yarn">
+    ```bash
+    yarn add nookdb
+    ```
+  </TabItem>
+  <TabItem label="bun">
+    ```bash
+    bun add nookdb
+    ```
+  </TabItem>
+</Tabs>
 
 nookdb ships precompiled native binaries for Win/macOS/Linux × x64/arm64. No build toolchain required.
 
@@ -52,8 +70,87 @@ db.close();
 
 That's it. `db.users` is fully typed from the schema; the Rust core is the authoritative validator.
 
+## …or wire it into Electron in 5 lines
+
+The whole point of nookdb is that your main process owns the database and your renderers consume it like a local API — no `ipcMain.handle` plumbing, no manual broadcast on writes. Install the bridge alongside the core:
+
+<Tabs syncKey="pkg">
+  <TabItem label="pnpm">
+    ```bash
+    pnpm add nookdb @nookdb/electron
+    ```
+  </TabItem>
+  <TabItem label="npm">
+    ```bash
+    npm install nookdb @nookdb/electron
+    ```
+  </TabItem>
+  <TabItem label="yarn">
+    ```bash
+    yarn add nookdb @nookdb/electron
+    ```
+  </TabItem>
+  <TabItem label="bun">
+    ```bash
+    bun add nookdb @nookdb/electron
+    ```
+  </TabItem>
+</Tabs>
+
+```ts title="main.ts"
+import { MessageChannelMain } from 'electron';
+import { openHost } from '@nookdb/electron/main';
+import { schema } from '../shared/schema';
+
+const host = await openHost('./app.db', { schema });
+
+// for each window: hand it one end of a MessageChannel and keep the other.
+const { port1, port2 } = new MessageChannelMain();
+host.connectPort(port1, { frameUrl: win.webContents.getURL(), origin: null, webContentsId: win.webContents.id });
+win.webContents.postMessage('nook:port', null, [port2]);
+```
+
+```ts title="preload.ts"
+import { exposeNookBridge } from '@nookdb/electron/preload';
+exposeNookBridge();                   // forwards a MessagePort to window.nookdb
+```
+
+```ts title="renderer.ts"
+import { connectNook } from '@nookdb/electron/renderer';
+import { schema } from '../shared/schema';
+
+const db = await connectNook({ schema });
+const admins = await db.users.find({ role: 'admin' });   // same API, typed
+```
+
+The wire protocol is structured-clone over `MessageChannel`. A schema-hash handshake rejects mismatched schemas on connect; per-renderer subscriptions clean up on disconnect. See the [Electron bridge guide](/guides/electron-bridge/) for the full setup including authorizers and `live()` subscriptions.
+
+## Errors are typed
+
+nookdb errors aren't string-matched — they're a discriminated `NookError` hierarchy you can `instanceof`-narrow on. The Rust core is the authoritative validator; failures cross the FFI boundary with a `[kind] message` prefix and the TS layer re-hydrates them into the matching subclass:
+
+```ts
+import { NookSchemaError, NookConflictError } from 'nookdb';
+
+try {
+  await db.users.insert({ email: 'not-an-email', role: 'admin' });
+} catch (err) {
+  if (err instanceof NookSchemaError) {
+    // err.message → "[schema] users.email failed string.email"
+    return showFormError(err.message);
+  }
+  if (err instanceof NookConflictError) {
+    // unique-index violation, e.g. duplicate email
+    return showFormError('email already in use');
+  }
+  throw err;
+}
+```
+
+The `[kind]` prefix is part of the stable public API — branching on `instanceof` is the recommended path. Full catalogue: [`Errors` reference](/reference/errors/).
+
 ## Next steps
 
 - Browse the [Schema DSL guide](/guides/schema-dsl/) to see every builder.
 - Try [Reactive `live()`](/guides/reactive-live/) for UI that stays in sync with the database.
-- Wire up [the Electron bridge](/guides/electron-bridge/) so renderers use the same API as main.
+- Read the [Architecture overview](/architecture/overview/) for how the Rust core, NAPI binding, and Electron bridge fit together.

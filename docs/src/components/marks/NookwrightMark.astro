@@ -1,0 +1,28 @@
+---
+interface Props {
+  size?: number;
+  class?: string;
+  stroke?: string;
+}
+const { size = 48, class: className, stroke = 'currentColor' } = Astro.props;
+---
+
+<svg
+  viewBox="0 0 48 48"
+  fill="none"
+  stroke={stroke}
+  stroke-width="4"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  width={size}
+  height={size}
+  class={className}
+>
+  <!-- Left vertical stroke of the n — same as Alt 1 base -->
+  <path d="M10 10 L10 38" />
+  <!-- Shoulder arc and inward curve creating the nook cavity — empty, no glyph -->
+  <path d="M10 17 C10 11 20 10 26 16 L26 28 C26 33 30 34 34 34" />
+  <!-- Right leg descends from cavity exit -->
+  <path d="M34 34 L34 38" />
+  <!-- No interior glyph — the empty cavity is the parent mark identity -->
+</svg>

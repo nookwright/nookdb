@@ -1,47 +1,46 @@
 ---
 title: Queries
-description: find, findOne, count, delete — operators, builder, ordering.
+description: find, findOne, count, update, delete — the shipped query surface for v0.x.
 ---
 
-After [opening a database with a schema](/quick-start/), every collection has a typed query API.
+After [opening a database with a schema](/quick-start/), every collection exposes a typed query API.
 
-## Basic shape
+## Shipped surface
 
 ```ts
-await db.users.find();                                  // all
-await db.users.find({ role: 'admin' });                 // filtered
+await db.users.find();                                  // all rows
+await db.users.find({ role: 'admin' });                 // equality filter
 await db.users.findOne({ email: 'ali@example.com' });   // first or null
 await db.users.count({ role: 'admin' });                // number
 await db.users.delete({ role: 'user' });                // returns count removed
+
+await db.users.update(
+  { id: '0193…' },                                      // filter (must match ≤ 1)
+  { role: 'admin' },                                    // partial patch
+);                                                      // returns count updated
 ```
 
-Each method returns its result type inferred from the schema — `find()` returns `Doc[]`, `findOne()` returns `Doc | null`, etc.
+Each method returns its result type inferred from the schema — `find()` returns `Doc[]`, `findOne()` returns `Doc | null`, the mutating methods return `number`.
 
-## Operators
-
-Filter values may be raw scalars (`role: 'admin'` ≡ equality) or operator objects:
+The filter is a plain `Record<string, unknown>` of field-value pairs: every key is interpreted as **strict equality** against that field. Compound filters narrow with logical AND.
 
 ```ts
-await db.users.find({
-  age: { $gte: 18, $lt: 65 },
-  email: { $regex: '@example\\.com$' },
-  tags:  { $in: ['friend', 'family'] },
-  bio:   { $exists: true },
-});
+await db.users.find({ role: 'admin', active: true });   // role='admin' AND active=true
 ```
 
-Supported: `$gt`, `$gte`, `$lt`, `$lte`, `$ne`, `$in`, `$nin`, `$exists`, `$regex`.
+Indexed fields (declared with `.index(...)` / `.uniqueIndex(...)` in the schema) are looked up via the secondary index. Non-indexed filters fall back to a full scan — fine for small collections, expensive at scale; index the fields you query.
 
-## Where builder
+## Reactive sibling
 
-For more dynamic queries:
+Every read above has a live counterpart:
 
 ```ts
-await db.users
-  .where({ role: 'admin' })
-  .orderBy('createdAt', 'desc')
-  .limit(20);
+const lq = db.users.live({ role: 'admin' });
+const unsub = lq.subscribe((users) => render(users));
+// later: unsub(); lq.dispose();
 ```
+
+See the [Reactive guide](/guides/reactive-live/) for the full subscription model (`subscribe`, `for await`, React's `useLive`).
 
 ## Transactions
 
@@ -49,9 +48,19 @@ Multi-document writes commit atomically:
 
 ```ts
 await db.transaction(async (tx) => {
-  const user = await tx.users.insert({ email: '...' });
-  await tx.posts.insert({ authorId: user.id, title: 'Hi' });
+  await tx.users.insert({ email: 'ali@example.com', role: 'admin' });
+  await tx.posts.insert({ authorId: '0193…', title: 'Hi' });
 }); // commit on return, rollback on throw
 ```
 
-See the [Reactive guide](/guides/reactive-live/) for `live()` — every query above has a reactive sibling.
+Inside the callback, `tx.users` is a transaction-scoped proxy with the same surface as `db.users` (`insert`, `find`, `findOne`, `count`, `delete`). Throw to roll back; return to commit. Nested `db.transaction(...)` calls are rejected.
+
+## Not yet shipped
+
+The following are on the roadmap (post-v0.x) and **not callable today** — listed here so you don't reach for them and find a TypeError:
+
+- **Comparison operators** (`$gt`, `$gte`, `$lt`, `$lte`, `$ne`, `$in`, `$nin`, `$exists`, `$regex`). For now: pull the rows with an equality filter and narrow in JS, or add an index and use multiple `count` / `findOne` calls.
+- **Fluent builder** (`.where(...).orderBy(...).limit(...)`). For now: filter via the equality-object form and sort/slice the array client-side.
+- **Aggregations** (`groupBy`, `sum`, `avg`). For now: stream rows with `live({...})` and aggregate in JS, or — if your dataset outgrows that — this is a sign you want SQLite, not NookDB.
+
+When these land they'll be in [the changelog](https://github.com/nookwright/nookdb/blob/main/CHANGELOG.md). The shipped surface above is stable across v0.x.

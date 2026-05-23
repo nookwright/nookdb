@@ -1,11 +1,11 @@
 ---
 title: Schema DSL
-description: The s.* schema builder — every field, constraint, and index.
+description: The s.* schema builder — every field, constraint, and index shipped in v0.x.
 ---
 
 The `s.*` namespace is nookdb's schema DSL. Every type, validator, and index in your app starts here.
 
-## Fields
+## Shipped builders
 
 ```ts
 import { s } from 'nookdb';
@@ -19,22 +19,20 @@ const schema = {
     role: s.enum(['admin', 'user']).default('user'),
     tags: s.array(s.string()),
     createdAt: s.date().default(() => new Date()),
-    profile: s.object({ bio: s.string().nullable() }),
   }),
 };
 ```
 
 ### Available builders
 
-- `s.id()` — UUID v7 string. Auto-generated if not provided.
+- `s.id()` — UUID v7 string. Auto-generated on insert if you don't supply one.
 - `s.string()` — UTF-8 string. Chain `.min(n)`, `.max(n)`, `.email()`, `.regex(/…/)`, `.nullable()`, `.optional()`, `.default(value | () => value)`.
 - `s.number()` — JS number. Chain `.int()`, `.min(n)`, `.max(n)`, `.nullable()`, `.optional()`, `.default(...)`.
 - `s.boolean()` — Chain `.nullable()`, `.optional()`, `.default(true | false)`.
 - `s.date()` — JS `Date`. Chain `.nullable()`, `.optional()`, `.default(...)`.
-- `s.enum([...])` — string literal union. Chain `.default(...)`.
-- `s.array(itemBuilder)` — array of any builder.
-- `s.object({...})` — nested object.
-- `s.ref(() => schema.users)` — foreign-key reference (typed).
+- `s.enum([...] as const)` — string literal union. The literal types flow through to `$type`, not just `string`. Chain `.default(...)`.
+- `s.array(itemBuilder)` — homogeneous array of any primitive builder (string / number / boolean / date / enum / nested array).
+- `s.collection({...})` — wraps a field record into a collection. Chain `.index('field')`, `.index(['a', 'b'])`, `.uniqueIndex('field')`.
 
 ## Indexes
 
@@ -44,12 +42,11 @@ const schema = {
     .collection({ /* fields */ })
     .index('authorId')                  // single-field
     .index(['authorId', 'publishedAt']) // composite (prefix-usable)
-    .uniqueIndex('slug')                // unique + index
-    .index('publishedAt', { sparse: true }), // null-skip
+    .uniqueIndex('slug'),               // unique + index
 };
 ```
 
-Indexes are schema-declarative — there is no runtime `createIndex`. Schema changes trigger a migration (see [Migrations](/guides/migrations/)).
+Indexes are declared on the schema — there is no runtime `createIndex`. Adding or removing an index triggers a schema-version bump that the [migration ledger](/guides/migrations/) tracks.
 
 ## Type inference
 
@@ -58,4 +55,14 @@ type User = typeof schema.users.$type;
 // { id: string; email: string; name: string; age?: number | undefined; role: 'admin' | 'user'; ... }
 ```
 
-Use `$type` in app code to keep handwritten types and runtime validation in sync.
+Use `$type` in app code to keep handwritten types and runtime validation in lockstep. The Rust core re-validates every write against the same descriptor; if the TS type says `role: 'admin' | 'user'` then Rust will reject `role: 'mod'` even when TS lies.
+
+## Not yet shipped
+
+These appear in early PRDs and design discussions but are **not callable in v0.x** — listed here so you don't reach for them and find a `TypeError`:
+
+- **`s.object({...})`** — nested struct fields. Currently `s.collection` is the only structured-record builder; nesting is post-1.0 work (`# v2` in `src/schema/s.ts`).
+- **`s.ref(() => schema.users)`** — typed foreign-key references. The same query-time joining can be done by storing the parent id as `s.string()` and querying both collections; the typed-ref ergonomics are post-1.0.
+- **`{ sparse: true }` index option** — null-skipping indexes. Currently all indexes include null values; declare the field `.nullable()` and filter `== null` rows out of your queries.
+
+When these land they'll be in [the changelog](https://github.com/nookwright/nookdb/blob/main/CHANGELOG.md). The shipped surface above is stable across v0.x.

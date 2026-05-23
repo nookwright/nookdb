@@ -1,0 +1,159 @@
+---
+/**
+ * StatsBand — Horizontal band with 4 large metric numbers.
+ * Responsive: 4-in-a-row at ≥1080px, 2x2 grid at 720–1079px, stacked at <720px.
+ * Includes optional count-up animation on viewport intersection.
+ */
+---
+
+<section class="stats-band" aria-label="Key statistics">
+  <div class="stats-band__inner">
+    <div class="stats-band__grid">
+      {
+        [
+          { value: '100%', label: 'Type-safe (no as casts)' },
+          { value: '0', label: 'IPC boilerplate' },
+          { value: '4', label: 'Lines to live query' },
+          { value: '~7ms', label: 'Single strict-fsync write' },
+        ].map((stat, i) => (
+          <div class="stat-cell" style={`--i: ${i}`}>
+            <div class="stat-cell__number" data-value={stat.value}>
+              {stat.value}
+            </div>
+            <p class="stat-cell__label">{stat.label}</p>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  /* ── Section ─────────────────────────────────────────────────────── */
+  .stats-band {
+    padding: 80px 24px;
+    border-top: 1px solid var(--border-subtle);
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--bg);
+  }
+
+  /* ── Inner container ──────────────────────────────────────────────── */
+  .stats-band__inner {
+    max-width: var(--max-content-width);
+    margin: 0 auto;
+  }
+
+  /* ── Grid layout ──────────────────────────────────────────────────── */
+  .stats-band__grid {
+    display: flex;
+    flex-direction: row;
+    gap: 0;
+  }
+
+  /* ── Stat cell ────────────────────────────────────────────────────── */
+  .stat-cell {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 44px;
+  }
+  .stat-cell:first-child { padding-left: 0; }
+  .stat-cell:last-child { padding-right: 0; }
+  /* hairline dividers — a quiet instrument-panel rhythm */
+  .stat-cell:not(:first-child) {
+    border-left: 1px solid var(--border-subtle);
+  }
+
+  /* ── Big number ───────────────────────────────────────────────────── */
+  .stat-cell__number {
+    font-family: var(--font-mono);
+    font-size: 72px;
+    font-weight: 500;
+    color: var(--text-primary);
+    line-height: 1;
+    margin: 0 0 12px 0;
+    letter-spacing: -0.01em;
+  }
+
+  /* ── Label ────────────────────────────────────────────────────────── */
+  .stat-cell__label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  /* ── Animation: count-up on intersection ───────────────────────────── */
+  @media (prefers-reduced-motion: no-preference) {
+    /* left-to-right cascade — the four numbers light up in sequence rather than
+       all at once. `both` keeps each at the pre-state (opacity 0.6, scale 0.95)
+       until its delay fires. */
+    .stats-band.is-active .stat-cell__number {
+      animation: count-up var(--motion-dur) var(--ease-reveal) both;
+      animation-delay: calc(var(--i, 0) * 90ms);
+    }
+  }
+
+  @keyframes count-up {
+    from {
+      opacity: 0.6;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  /* ── Tablet: 720–1079px (2x2 grid) ──────────────────────────────── */
+  @media (max-width: 1079px) and (min-width: 720px) {
+    .stats-band__grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      row-gap: 60px;
+    }
+
+    /* dividers don't map cleanly onto a 2x2 grid — drop them here */
+    .stat-cell { padding: 0; }
+    .stat-cell:not(:first-child) { border-left: none; }
+
+    .stat-cell__number {
+      font-size: 60px;
+    }
+  }
+
+  /* ── Mobile: <720px (single column, stacked) ────────────────────────── */
+  @media (max-width: 719px) {
+    .stats-band {
+      padding: 60px 24px;
+    }
+
+    .stats-band__grid {
+      flex-direction: column;
+      gap: 40px;
+    }
+
+    .stat-cell { padding: 0; }
+    .stat-cell:not(:first-child) { border-left: none; }
+
+    .stat-cell__number {
+      font-size: 40px;
+    }
+
+    .stat-cell__label {
+      font-size: 10px;
+      letter-spacing: 0.1em;
+    }
+  }
+</style>
+
+<script>
+  import '../scripts/stats-band.ts';
+</script>

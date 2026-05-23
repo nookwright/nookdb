@@ -3,6 +3,55 @@ title: Architecture overview
 description: How the Rust core, NAPI binding, TS surface, and Electron bridge fit together.
 ---
 
+import ArchitectureDiagramInline from '../../../components/ArchitectureDiagramInline.astro';
+
+NookDB is four layers stacked on `redb`. Each layer has a single responsibility; data flows downward through the Rust core and back up through typed surfaces.
+
+<ArchitectureDiagramInline />
+
+## Layers
+
+### Rust core (`crates/nookdb-core`)
+
+Pure Rust, no NAPI dependency. Owns:
+- The schema IR and validator (`schema/`)
+- The composite-key codec (`codec/`)
+- The redb-backed storage layer (`storage.rs`)
+- The post-commit notifier (`notify.rs`)
+- The reactive engine (`live.rs`)
+- The migration runner (`migrate.rs`)
+- The backup/restore module (`backup.rs`)
+
+Testable without Node. Has its own integration tests (~80 tests) plus proptest suites.
+
+### NAPI binding (`crates/nookdb-napi`)
+
+Bridges the Rust core to JavaScript. Produces a `.node` binary per platform via napi-rs. Six platforms are shipped via per-platform NPM packages (`@nookdb/core-<triple>`). `tokio::task::spawn_blocking` adapts the synchronous redb storage layer to JS-side async; errors are reshaped at the FFI boundary into a `[kind] message` prefix convention so the TS layer can re-hydrate them into the typed `NookError` hierarchy.
+
+### TS surface (`packages/nookdb`)
+
+Wraps the NAPI binding with typed surfaces. Schema inference, error mapping, and the `LiveQuery<T>` class live here. The Rust core is the **authoritative** validator — the TS surface trusts it.
+
+### Electron bridge (`packages/electron`)
+
+A thin transport layer on top of the TS surface:
+- `@nookdb/electron/main` — `openHost()` and `connectPort()` for the Host process.
+- `@nookdb/electron/preload` — `exposeNookBridge()` to forward a MessagePort.
+- `@nookdb/electron/renderer` — `connectNook()` returning a typed proxy.
+
+Wire protocol is structured-clone over `MessageChannel`. Schema-hash handshake rejects mismatched schemas on connect. Per-renderer subscription registry cleans up on disconnect.
+
+## What's NOT shipped
+
+No HTTP server, no admin dashboard, no replication, no CRDT, no GDPR helpers, no audit log. These were sehawq.db v5 features deliberately dropped — see PRD §14 for the rationale and the [Migrating from sehawq.db v5 guide](/guides/migrating-from-sehawq-v5/).
+
+## Text-only diagram
+
+For copy-paste into issues, READMEs, or LLM prompts where SVG isn't viable:
+
+<details>
+<summary>Show ASCII version</summary>
+
 ```text
    ┌──────────────────────────────────────────────────┐
    │  TypeScript API (npm package `nookdb`)           │
@@ -24,41 +73,7 @@ description: How the Rust core, NAPI binding, TS surface, and Electron bridge fi
    └──────────────────────────────────────────────────┘
 ```
 
-## Layers
-
-### Rust core (`crates/nookdb-core`)
-
-Pure Rust, no NAPI dependency. Owns:
-- The schema IR and validator (`schema/`)
-- The composite-key codec (`codec/`)
-- The redb-backed storage layer (`storage.rs`)
-- The post-commit notifier (`notify.rs`)
-- The reactive engine (`live.rs`)
-- The migration runner (`migrate.rs`)
-- The backup/restore module (`backup.rs`)
-
-Testable without Node. Has its own integration tests (~80 tests) plus proptest suites.
-
-### NAPI binding (`crates/nookdb-napi`)
-
-Bridges the Rust core to JavaScript. Produces a `.node` binary per platform via napi-rs. Six platforms are shipped via per-platform NPM packages (`@nookdb/core-<triple>`).
-
-### TS surface (`packages/nookdb`)
-
-Wraps the NAPI binding with typed surfaces. Schema inference, error mapping, and the `LiveQuery<T>` class live here. The Rust core is the **authoritative** validator — the TS surface trusts it.
-
-### Electron bridge (`packages/electron`)
-
-A thin transport layer on top of the TS surface:
-- `@nookdb/electron/main` — `openHost()` and `connectPort()` for the Host process.
-- `@nookdb/electron/preload` — `exposeNookBridge()` to forward a MessagePort.
-- `@nookdb/electron/renderer` — `connectNook()` returning a typed proxy.
-
-Wire protocol is structured-clone over `MessageChannel`. Schema-hash handshake rejects mismatched schemas on connect. Per-renderer subscription registry cleans up on disconnect.
-
-## What's NOT shipped
-
-No HTTP server, no admin dashboard, no replication, no CRDT, no GDPR helpers, no audit log. These were sehawq.db v5 features deliberately dropped — see PRD §14 for the rationale and the [Migrating from sehawq.db v5 guide](/guides/migrating-from-sehawq-v5/).
+</details>
 
 ## Where to next
 

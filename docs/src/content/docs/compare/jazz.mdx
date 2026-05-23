@@ -1,0 +1,28 @@
+---
+title: NookDB vs Jazz
+description: A short, honest comparison of NookDB and Jazz.
+---
+
+## Pick Jazz if...
+
+- You want multi-device sync out of the box without building a backend yourself.
+- Your app is full-stack and you want one framework to span client, server, and the space in between.
+- CRDT-based conflict resolution fits your collaborative data model.
+
+## Pick NookDB if...
+
+- Your app runs on a single machine and never needs to merge changes from another device.
+- You want no cloud dependency in the critical path — not even a relay server.
+- You think in typed schemas, not CRDT documents.
+
+## Where they overlap
+
+Both Jazz and NookDB are "local-first" in the practical sense that they store data on the user's machine and let the UI read from that local store without a round-trip to a server. Both treat developer experience seriously: Jazz ships a full TypeScript SDK; NookDB ships a schema DSL where every field type is reflected in the query return type. If you care about keeping data close to the user and not paying per-query latency, both projects share that philosophy.
+
+## What's genuinely different
+
+Jazz is a distributed system at heart. Its CRDT layer is designed for the reality that the same document may be edited on a phone, a laptop, and a web app simultaneously, and those edits need to merge without losing data. That is powerful, but it comes with a required network topology — Jazz Cloud or a self-hosted relay. NookDB makes the opposite bet: no network, no merge, one machine. The storage layer is a Rust B-tree with append-only writes and crash-safe recovery. If your Electron app is the only writer, that simplicity is a feature.
+
+---
+
+*— Ömer, Nookwright*

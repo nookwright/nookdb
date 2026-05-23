@@ -1,0 +1,297 @@
+---
+import { copy } from '../lib/copy';
+
+const c = copy.whenToUse;
+// Convert backtick spans to <code> so YES bullets can name specific APIs
+// (`ipcMain.handle`) without manual HTML in the copy file.
+const fmt = (s: string) => s.replace(/`(.+?)`/g, '<code>$1</code>');
+---
+
+<section class="when section-reveal reveal-stagger" aria-labelledby="when-heading">
+  <div class="when__inner">
+    <header class="when__head reveal-item" style="--rev-i: 0">
+      <h2 class="when__heading" id="when-heading">{c.heading}</h2>
+      <p class="when__subhead">{c.subhead}</p>
+    </header>
+
+    <!-- ── YES panel ── full width, centerpiece ───────────────────── -->
+    <div class="when__yes reveal-item" style="--rev-i: 1">
+      <h3 class="when__panel-heading">
+        <span class="when__badge when__badge--yes" aria-hidden="true">✓</span>
+        {c.yes.heading}
+      </h3>
+      <ul class="when__list when__list--yes">
+        {c.yes.items.map((item) => (
+          <li set:html={fmt(item)} />
+        ))}
+      </ul>
+    </div>
+
+    <!-- ── NO aside ── single line + grouped chips, quieter ────────── -->
+    <div class="when__no reveal-item" style="--rev-i: 2">
+      <p class="when__no-text">{c.no.text}</p>
+      <ul class="when__no-groups" role="list">
+        {c.no.groups.map((g, gi) => (
+          <li class="when__no-group">
+            <span class="when__no-tag">{g.label}</span>
+            <span class="when__no-chips">
+              {g.items.map((item, ii) => (
+                <>
+                  {ii > 0 && <span class="when__no-sep" aria-hidden="true">·</span>}
+                  <a class="when__no-chip" href={item.href} target="_blank" rel="noopener noreferrer">{item.label}</a>
+                </>
+              ))}
+            </span>
+            {gi < c.no.groups.length - 1 && <span class="when__no-divider" aria-hidden="true"></span>}
+          </li>
+        ))}
+      </ul>
+    </div>
+
+    <!-- ── Compare rail — our own deep-dive pages ─────────────────── -->
+    <p class="when__compare reveal-item" style="--rev-i: 3">
+      <span class="when__compare-label">{c.compareLabel}</span>
+      {c.compareLinks.map((l, i) => (
+        <>
+          {i > 0 && <span class="when__compare-sep" aria-hidden="true">·</span>}
+          <a class="when__compare-link" href={l.href}>{l.label}</a>
+        </>
+      ))}
+    </p>
+  </div>
+</section>
+
+<style>
+  .when {
+    padding: 96px 24px;
+  }
+
+  .when__inner {
+    max-width: 1040px;
+    margin: 0 auto;
+  }
+
+  /* ── Heading ─────────────────────────────────────────────────────── */
+  .when__head {
+    text-align: center;
+    margin: 0 0 48px;
+  }
+  .when__heading {
+    font-family: var(--font-sans);
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+    margin: 0 0 10px;
+  }
+  .when__subhead {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    margin: 0;
+  }
+
+  /* ── YES panel — centerpiece ─────────────────────────────────────── */
+  .when__yes {
+    position: relative;
+    background: var(--bg-code);
+    border: 1px solid rgba(168, 201, 127, 0.36);
+    border-radius: var(--r-lg);
+    padding: 32px 32px 16px;
+    overflow: hidden;
+    isolation: isolate;
+  }
+  /* lamp glow upper-left — the affirmative direction */
+  .when__yes::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 40%;
+    height: 60%;
+    background: radial-gradient(circle, var(--mint) 0%, transparent 64%);
+    opacity: 0.05;
+    filter: blur(36px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .when__yes > * { position: relative; z-index: 1; }
+
+  .when__panel-heading {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--text-secondary);
+    margin: 0 0 8px 0;
+  }
+  .when__badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    font-size: 12px;
+    flex: none;
+    color: var(--bg);
+    background: var(--mint);
+  }
+
+  /* YES list — two columns at desktop, items breathe */
+  .when__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 32px;
+  }
+  .when__list li {
+    position: relative;
+    padding: 18px 0 18px 28px;
+    color: var(--text-primary);
+    font-size: var(--type-body-lg);
+    line-height: 1.55;
+    border-top: 1px solid var(--border-subtle);
+  }
+  /* on desktop, first row items have no top border (clean top edge) */
+  .when__list li:nth-child(1),
+  .when__list li:nth-child(2) {
+    border-top: none;
+  }
+  .when__list li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    top: 18px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--mint);
+  }
+  /* inline code chips inside YES bullets */
+  .when__list :global(code) {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    color: var(--text-primary);
+    background: var(--accent-subtle);
+    padding: 1px 6px;
+    border-radius: 3px;
+  }
+
+  /* ── NO aside — quieter, horizontal, grouped chip rail ───────────── */
+  .when__no {
+    margin: 28px 0 0;
+    padding: 22px 26px 18px;
+    background: rgba(255, 255, 255, 0.015);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+  }
+  .when__no-text {
+    margin: 0 0 14px;
+    font-family: var(--font-sans);
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: var(--text-muted);
+  }
+  .when__no-groups {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    align-items: baseline;
+  }
+  .when__no-group {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  .when__no-tag {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--text-caption);
+  }
+  .when__no-chips {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .when__no-chip {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-decoration: underline;
+    text-decoration-color: var(--border-default);
+    text-underline-offset: 3px;
+    transition: color var(--dur-fast) var(--ease-out),
+                text-decoration-color var(--dur-fast) var(--ease-out);
+  }
+  .when__no-chip:hover {
+    color: var(--accent-hover);
+    text-decoration-color: var(--accent);
+  }
+  .when__no-chip::after {
+    content: ' ↗';
+    font-size: 0.82em;
+    opacity: 0.55;
+  }
+  .when__no-sep {
+    color: var(--border-default);
+    opacity: 0.7;
+  }
+
+  /* ── Compare rail (our own deep-dives) ───────────────────────────── */
+  .when__compare {
+    margin: 32px 0 0;
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+  }
+  .when__compare-label {
+    margin-right: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    font-size: 10px;
+  }
+  .when__compare-link {
+    color: var(--text-secondary);
+    text-decoration: underline;
+    text-decoration-color: var(--border-default);
+    text-underline-offset: 3px;
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+  .when__compare-link:hover { color: var(--accent); }
+  .when__compare-sep {
+    margin: 0 10px;
+    opacity: 0.5;
+  }
+
+  /* ── Responsive ──────────────────────────────────────────────────── */
+  @media (max-width: 720px) {
+    .when { padding: 72px 20px; }
+    .when__heading { font-size: 24px; }
+    .when__yes { padding: 24px 22px 10px; }
+    .when__list { grid-template-columns: 1fr; column-gap: 0; }
+    .when__list li:nth-child(2) { border-top: 1px solid var(--border-subtle); }
+    .when__no { padding: 18px 18px 14px; }
+    .when__no-groups { gap: 6px 16px; }
+    .when__compare-label { display: block; margin: 0 0 8px; }
+    .when__compare-sep { margin: 0 7px; }
+  }
+</style>
+
+<script>
+  import '../scripts/reveal.ts';
+</script>

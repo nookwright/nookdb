@@ -1,0 +1,136 @@
+---
+/**
+ * MigrationBand — answers the question every persona eventually hits:
+ * "I shipped the app, then my schema changed — now what?" Honest framing:
+ * there's a transactional version ledger today; the full declarative DSL is
+ * on the roadmap. Text left, ledger snippet right.
+ */
+import { copy } from '../lib/copy';
+const c = copy.migration;
+---
+
+<section class="mig section-reveal reveal-stagger" aria-label="Schema evolution">
+  <div class="mig__inner">
+    <div class="mig__text reveal-item" style="--rev-i: 0">
+      <span class="mig__kicker">{c.kicker}</span>
+      <h2 class="mig__heading">{c.heading}</h2>
+      <p class="mig__body">{c.body}</p>
+      <a class="mig__link" href={c.linkHref}>{c.linkLabel}</a>
+    </div>
+
+    <div class="mig__card reveal-item" style="--rev-i: 1">
+      <div class="mig__chrome">
+        <span class="mig__chrome-dot" aria-hidden="true"></span>
+        <span class="mig__chrome-label">version ledger</span>
+      </div>
+      <pre class="mig__code">{c.code}</pre>
+    </div>
+  </div>
+</section>
+
+<style>
+  .mig {
+    /* hugs Durability above — continuous trust zone */
+    padding: 64px 24px 96px;
+  }
+
+  .mig__inner {
+    max-width: 1040px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    align-items: center;
+  }
+
+  /* ── Text ────────────────────────────────────────────────────────── */
+  .mig__kicker {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--text-caption);
+    margin-bottom: 14px;
+  }
+
+  .mig__heading {
+    font-family: var(--font-sans);
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+    margin: 0 0 14px;
+    max-width: 22ch;
+  }
+
+  .mig__body {
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--text-muted);
+    margin: 0 0 20px;
+  }
+
+  .mig__link {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--accent);
+    text-decoration: none;
+    transition: text-decoration var(--dur-fast) var(--ease-out);
+  }
+  .mig__link:hover { text-decoration: underline; }
+
+  /* ── Ledger card ─────────────────────────────────────────────────── */
+  .mig__card {
+    background: var(--bg-code);
+    border: 1px solid var(--border-default);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-elevated);
+  }
+
+  .mig__chrome {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--bg-popover);
+  }
+  .mig__chrome-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--mint);
+    box-shadow: 0 0 7px var(--mint);
+  }
+  .mig__chrome-label {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--text-muted);
+  }
+
+  .mig__code {
+    margin: 0;
+    padding: 20px 22px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.8;
+    color: var(--text-primary);
+    white-space: pre;
+    overflow-x: auto;
+    background: transparent;
+  }
+
+  /* ── Mobile ──────────────────────────────────────────────────────── */
+  @media (max-width: 880px) {
+    .mig { padding: 72px 20px; }
+    .mig__inner { grid-template-columns: 1fr; gap: 28px; }
+    .mig__heading { font-size: 22px; }
+  }
+</style>
+
+<script>
+  import '../scripts/reveal.ts';
+</script>

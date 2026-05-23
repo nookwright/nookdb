@@ -1,0 +1,108 @@
+/* Story cards — slot+sticky scrollytelling pattern.
+ * Each card lives inside a .story-card-slot wrapper (~180vh tall).
+ * The inner .story-card is position:sticky so it pins to the viewport top
+ * while the slot's extra scroll space is consumed, then naturally exits
+ * at the bottom edge as the next slot begins. No sibling overlap. */
+
+/* Wrapper slot — provides vertical scroll space.
+ * These cards are one-shot reveals (not scroll-scrubbed), so they only need
+ * enough dwell to read as "pinned" — beyond that it's just dead empty scroll.
+ * 132vh ≈ ~32vh of pinned window, which is plenty. */
+.story-card-slot {
+  position: relative;
+  min-height: 132vh;
+}
+
+/* Sticky inner card — pinned to viewport top within its slot */
+.story-card {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 var(--s-6);
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity calc(var(--motion-dur) * 2) var(--ease-out),
+    transform calc(var(--motion-dur) * 2) var(--ease-out);
+}
+
+.story-card.is-active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.story-card__inner {
+  max-width: var(--max-content-width);
+  width: 100%;
+  margin: 0 auto;
+}
+
+.story-card__title {
+  font-family: var(--font-sans);
+  font-size: 40px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 16px;
+  letter-spacing: -0.01em;
+}
+
+.story-card__body {
+  font-family: var(--font-sans);
+  font-size: 18px;
+  color: var(--text-muted);
+  line-height: var(--line-height-body);
+  max-width: 640px;
+  margin: 0 0 48px;
+}
+
+.story-card__visual {
+  margin-top: 32px;
+}
+
+/* Code block style (used in all 3 cards) */
+.story-card__code {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  background: var(--bg-code);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-base);
+  padding: 20px 24px;
+  color: var(--text-primary);
+  white-space: pre;
+  overflow-x: auto;
+  line-height: 1.6;
+}
+
+/* Mobile: de-pin, natural block flow */
+@media (max-width: 880px) {
+  .story-card-slot {
+    min-height: auto;
+  }
+  .story-card {
+    position: relative;
+    top: auto;
+    height: auto;
+    min-height: 80vh;
+    padding: 64px var(--s-6);
+  }
+  .story-card__title {
+    font-size: 28px;
+  }
+  .story-card__body {
+    font-size: 16px;
+    margin-bottom: 32px;
+  }
+}
+
+/* Reduced motion: show statically */
+@media (prefers-reduced-motion: reduce) {
+  .story-card,
+  .story-card.is-active {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}

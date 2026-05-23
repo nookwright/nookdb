@@ -1,0 +1,927 @@
+---
+// FeatureExplorer.astro — tabbed product showcase, pure CSS tabs via radio :checked
+// No JavaScript. Inline <style> only. No external file modifications.
+---
+
+<section class="explorer">
+  <!-- Radio inputs must be direct children of .explorer so the sibling combinator
+       (#explorer-tab-N:checked ~ .explorer__inner) can reach the inner content. -->
+  <input type="radio" name="explorer-tab" id="explorer-tab-1" checked aria-hidden="true" />
+  <input type="radio" name="explorer-tab" id="explorer-tab-2" aria-hidden="true" />
+  <input type="radio" name="explorer-tab" id="explorer-tab-3" aria-hidden="true" />
+  <input type="radio" name="explorer-tab" id="explorer-tab-4" aria-hidden="true" />
+
+  <div class="explorer__inner">
+    <h2 class="explorer__heading">What NookDB does.</h2>
+
+    <!-- Tab strip -->
+    <div class="explorer__tabs" role="tablist" aria-label="Feature categories">
+      <label for="explorer-tab-1" class="explorer__tab" role="tab">Schema DSL</label>
+      <label for="explorer-tab-2" class="explorer__tab" role="tab">Reactive queries</label>
+      <label for="explorer-tab-3" class="explorer__tab" role="tab">Multi-process bridge</label>
+      <label for="explorer-tab-4" class="explorer__tab" role="tab">Crash safety</label>
+    </div>
+
+    <!-- Panel area -->
+    <div class="explorer__panels">
+
+      <!-- ------------------------------------------------------------------ -->
+      <!-- Panel 1: Schema DSL                                                  -->
+      <!-- ------------------------------------------------------------------ -->
+      <div class="explorer__panel" data-panel="1">
+        <!-- Left: code block -->
+        <div class="explorer__code-col">
+          <pre class="explorer__code"><span class="t-kw">const</span> schema <span class="t-op">=</span> <span class="t-fn">s.collection</span>(<span class="t-paren">{</span>
+  <span class="t-key">id</span><span class="t-op">:</span>    <span class="t-fn">s.id</span>()<span class="t-op">,</span>
+  <span class="t-key">title</span><span class="t-op">:</span> <span class="t-fn">s.string</span>()<span class="t-op">,</span>
+  <span class="t-key">done</span><span class="t-op">:</span>  <span class="t-fn">s.boolean</span>()<span class="t-op">,</span>
+<span class="t-paren">}</span>)<span class="t-op">;</span></pre>
+        </div>
+
+        <!-- Right: inferred-type tooltip mock -->
+        <div class="explorer__mock-col">
+          <div class="explorer__mock explorer__mock--schema">
+            <div class="schema-tooltip">
+              <div class="schema-tooltip__header">
+                <span class="schema-tooltip__label">Inferred type</span>
+                <span class="schema-tooltip__badge">TypeScript</span>
+              </div>
+              <pre class="schema-tooltip__type"><span class="t-kw">type</span> <span class="t-typename">Todo</span> <span class="t-op">=</span> <span class="t-paren">{</span>
+  <span class="t-key">id</span><span class="t-op">:</span>    <span class="t-typename">string</span><span class="t-op">;</span>
+  <span class="t-key">title</span><span class="t-op">:</span> <span class="t-typename">string</span><span class="t-op">;</span>
+  <span class="t-key">done</span><span class="t-op">:</span>  <span class="t-typename">boolean</span><span class="t-op">;</span>
+<span class="t-paren">}</span></pre>
+              <div class="schema-tooltip__footnote">No codegen. No <code>as</code> casts. No schema drift.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ------------------------------------------------------------------ -->
+      <!-- Panel 2: Reactive queries                                            -->
+      <!-- ------------------------------------------------------------------ -->
+      <div class="explorer__panel" data-panel="2">
+        <!-- Left: code block -->
+        <div class="explorer__code-col">
+          <pre class="explorer__code"><span class="t-kw">const</span> todos <span class="t-op">=</span> db<span class="t-op">.</span>todos<span class="t-op">.</span><span class="t-fn">live</span>(<span class="t-paren">{</span> <span class="t-key">done</span><span class="t-op">:</span> <span class="t-kw">false</span> <span class="t-paren">}</span>)<span class="t-op">;</span>
+
+todos<span class="t-op">.</span><span class="t-fn">subscribe</span>(render)<span class="t-op">;</span></pre>
+        </div>
+
+        <!-- Right: results panel with row animations -->
+        <div class="explorer__mock-col">
+          <div class="explorer__mock explorer__mock--live">
+            <div class="live-results">
+              <div class="live-results__header">
+                <span class="live-results__label">Live results</span>
+                <span class="live-results__dot" aria-hidden="true"></span>
+              </div>
+              <div class="live-results__rows">
+                <div class="live-results__row live-row live-row--1">
+                  <span class="t-key">title</span><span class="t-muted">:</span>
+                  <span class="t-str">'buy milk'</span>
+                  <span class="t-muted">,</span>
+                  <span class="t-key">done</span><span class="t-muted">:</span>
+                  <span class="t-kw">false</span>
+                </div>
+                <div class="live-results__row live-row live-row--2">
+                  <span class="t-key">title</span><span class="t-muted">:</span>
+                  <span class="t-str">'walk the dog'</span>
+                  <span class="t-muted">,</span>
+                  <span class="t-key">done</span><span class="t-muted">:</span>
+                  <span class="t-kw">false</span>
+                </div>
+                <div class="live-results__row live-row live-row--3">
+                  <span class="t-key">title</span><span class="t-muted">:</span>
+                  <span class="t-str">'ship nookdb'</span>
+                  <span class="t-muted">,</span>
+                  <span class="t-key">done</span><span class="t-muted">:</span>
+                  <span class="t-kw">false</span>
+                </div>
+              </div>
+              <div class="live-results__footer">Network requests: 0.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ------------------------------------------------------------------ -->
+      <!-- Panel 3: Multi-process bridge                                        -->
+      <!-- ------------------------------------------------------------------ -->
+      <div class="explorer__panel" data-panel="3">
+        <!-- Left: code block -->
+        <div class="explorer__code-col">
+          <pre class="explorer__code"><span class="t-comment">// Renderer — any window</span>
+<span class="t-kw">const</span> todos <span class="t-op">=</span> <span class="t-fn">useLive</span>(<span class="t-op">() =&gt;</span>
+  db<span class="t-op">.</span>todos<span class="t-op">.</span><span class="t-fn">live</span>()
+)<span class="t-op">;</span>
+
+<span class="t-comment">// Changes from Renderer #1</span>
+<span class="t-comment">// appear in Renderer #2</span>
+<span class="t-comment">// automatically.</span></pre>
+        </div>
+
+        <!-- Right: two window-chrome cards with animated sync -->
+        <div class="explorer__mock-col">
+          <div class="explorer__mock explorer__mock--bridge">
+            <div class="bridge-windows">
+              <div class="bridge-window bridge-win--1">
+                <div class="bridge-window__chrome">
+                  <span class="win-dot win-dot--red"></span>
+                  <span class="win-dot win-dot--yellow"></span>
+                  <span class="win-dot win-dot--green"></span>
+                  <span class="win-label">Renderer #1</span>
+                </div>
+                <div class="bridge-window__body">
+                  <div class="win-row win-row--static">buy milk</div>
+                  <div class="win-row win-row--static">walk the dog</div>
+                  <div class="win-row win-row--new">ship nookdb</div>
+                </div>
+              </div>
+
+              <!-- Animated sync arrow -->
+              <div class="bridge-arrow" aria-hidden="true">
+                <svg width="32" height="40" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <line x1="16" y1="0" x2="16" y2="32" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 3" class="bridge-arrow__line"/>
+                  <polyline points="10,27 16,35 22,27" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+                </svg>
+                <span class="bridge-arrow__label">synced</span>
+              </div>
+
+              <div class="bridge-window bridge-win--2">
+                <div class="bridge-window__chrome">
+                  <span class="win-dot win-dot--red"></span>
+                  <span class="win-dot win-dot--yellow"></span>
+                  <span class="win-dot win-dot--green"></span>
+                  <span class="win-label">Renderer #2</span>
+                </div>
+                <div class="bridge-window__body">
+                  <div class="win-row win-row--static">buy milk</div>
+                  <div class="win-row win-row--static">walk the dog</div>
+                  <div class="win-row win-row--new win-row--delayed">ship nookdb</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ------------------------------------------------------------------ -->
+      <!-- Panel 4: Crash safety                                                -->
+      <!-- ------------------------------------------------------------------ -->
+      <div class="explorer__panel" data-panel="4">
+        <!-- Left: code block -->
+        <div class="explorer__code-col">
+          <pre class="explorer__code"><span class="t-kw">await</span> db<span class="t-op">.</span><span class="t-fn">transaction</span>(<span class="t-kw">async</span> (tx) <span class="t-op">=&gt;</span> <span class="t-paren">{</span>
+  <span class="t-kw">await</span> tx<span class="t-op">.</span>todos<span class="t-op">.</span><span class="t-fn">insert</span>(<span class="t-paren">{</span>
+    <span class="t-key">title</span><span class="t-op">:</span> <span class="t-str">'critical'</span>
+  <span class="t-paren">}</span>)<span class="t-op">;</span>
+  <span class="t-kw">await</span> tx<span class="t-op">.</span>todos<span class="t-op">.</span><span class="t-fn">update</span>(<span class="t-comment">/* ... */</span>)<span class="t-op">;</span>
+<span class="t-paren">}</span>)<span class="t-op">;</span>
+<span class="t-comment">// fsync committed before resolve</span></pre>
+        </div>
+
+        <!-- Right: txn flow diagram -->
+        <div class="explorer__mock-col">
+          <div class="explorer__mock explorer__mock--crash">
+            <div class="crash-diagram">
+              <!-- Transaction flow pills -->
+              <div class="crash-flow">
+                <div class="crash-pill crash-pill--1">
+                  <span class="crash-pill__icon">⬡</span>
+                  <span>txn</span>
+                </div>
+                <div class="crash-connector crash-connector--1" aria-hidden="true"></div>
+                <div class="crash-pill crash-pill--2">
+                  <span class="crash-pill__icon">✎</span>
+                  <span>write log</span>
+                </div>
+                <div class="crash-connector crash-connector--2" aria-hidden="true"></div>
+                <div class="crash-pill crash-pill--3">
+                  <span class="crash-pill__icon">⊙</span>
+                  <span>fsync</span>
+                </div>
+                <div class="crash-connector crash-connector--3" aria-hidden="true"></div>
+                <div class="crash-pill crash-pill--4">
+                  <span class="crash-pill__icon">✓</span>
+                  <span>durable</span>
+                </div>
+              </div>
+
+              <!-- kill -9 lightning bolt -->
+              <div class="crash-kill" aria-label="kill -9 strikes — data survives">
+                <svg class="crash-kill__bolt" width="28" height="44" viewBox="0 0 28 44" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <path d="M18 2L4 24h10l-4 18L24 20H14L18 2z" fill="currentColor" stroke="none"/>
+                </svg>
+                <span class="crash-kill__label">kill -9</span>
+              </div>
+
+              <!-- Survived indicator -->
+              <div class="crash-survived">
+                <span class="crash-survived__icon">✓</span>
+                <span class="crash-survived__text">Data intact.</span>
+              </div>
+            </div>
+
+            <p class="crash-caption">
+              Tested with kill&#8209;9 mid-transaction.<br />
+              Zero data loss across proptest + crash-injection suites.
+            </p>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /.explorer__panels -->
+  </div><!-- /.explorer__inner -->
+</section>
+
+<style>
+  /* ============================================================
+     Radio inputs — visually hidden but still interactive
+  ============================================================ */
+  .explorer input[name="explorer-tab"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    width: 0;
+    height: 0;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* ============================================================
+     Section shell
+  ============================================================ */
+  .explorer {
+    position: relative;
+    padding: 80px 24px;
+  }
+
+  .explorer__inner {
+    max-width: var(--max-content-width);
+    margin: 0 auto;
+  }
+
+  .explorer__heading {
+    font-family: var(--font-sans);
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    color: var(--text-primary);
+    margin: 0 0 48px 0;
+    text-align: center;
+  }
+
+  /* ============================================================
+     Tab strip
+  ============================================================ */
+  .explorer__tabs {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 0;
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 0;
+    overflow-x: auto;
+    /* Hide scrollbar on webkit — still scrollable */
+    scrollbar-width: none;
+  }
+  .explorer__tabs::-webkit-scrollbar { display: none; }
+
+  .explorer__tab {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    padding: 16px 24px;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    white-space: nowrap;
+    user-select: none;
+    transition:
+      color calc(var(--motion-dur) * 0.8) var(--ease-out),
+      border-bottom-color calc(var(--motion-dur) * 0.8) var(--ease-out);
+    /* Compensate for the 1px strip border so the 2px active border
+       sits flush without double-border: shift down 1px */
+    margin-bottom: -1px;
+  }
+
+  .explorer__tab:hover {
+    color: var(--text-secondary);
+  }
+
+  /* ============================================================
+     Panel area
+  ============================================================ */
+  .explorer__panels {
+    min-height: 340px;
+    padding-top: 1px; /* prevent margin collapse from panel children */
+  }
+
+  /* ============================================================
+     Individual panels — default hidden
+  ============================================================ */
+  .explorer__panel {
+    display: none;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items: start;
+    padding-top: 40px;
+    /* Fade-in when revealed — applied via animation, not transition,
+       so it fires each time the panel becomes visible */
+    animation: panel-fade-in calc(var(--motion-dur) * 1.5) var(--ease-out) both;
+  }
+
+  @keyframes panel-fade-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ============================================================
+     CSS :checked → show panel + highlight active tab
+     Radios are siblings of .explorer__inner via the general
+     sibling combinator ~. Panels are descendants of __inner.
+  ============================================================ */
+  #explorer-tab-1:checked ~ .explorer__inner .explorer__panel[data-panel="1"],
+  #explorer-tab-2:checked ~ .explorer__inner .explorer__panel[data-panel="2"],
+  #explorer-tab-3:checked ~ .explorer__inner .explorer__panel[data-panel="3"],
+  #explorer-tab-4:checked ~ .explorer__inner .explorer__panel[data-panel="4"] {
+    display: grid;
+  }
+
+  /* Active tab label highlight */
+  #explorer-tab-1:checked ~ .explorer__inner label[for="explorer-tab-1"],
+  #explorer-tab-2:checked ~ .explorer__inner label[for="explorer-tab-2"],
+  #explorer-tab-3:checked ~ .explorer__inner label[for="explorer-tab-3"],
+  #explorer-tab-4:checked ~ .explorer__inner label[for="explorer-tab-4"] {
+    color: var(--text-primary);
+    border-bottom-color: var(--text-primary);
+  }
+
+  /* ============================================================
+     Code column
+  ============================================================ */
+  .explorer__code-col {
+    min-width: 0;
+  }
+
+  .explorer__code {
+    font-family: var(--font-mono);
+    font-size: var(--type-code-block, 13px);
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-base);
+    padding: 20px 24px;
+    color: var(--text-primary);
+    white-space: pre;
+    overflow-x: auto;
+    line-height: 1.65;
+    margin: 0;
+  }
+
+  /* ============================================================
+     Mock UI column — shared shell
+  ============================================================ */
+  .explorer__mock-col {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .explorer__mock {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-base);
+    padding: 24px;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  /* ============================================================
+     Syntax token colours (shared across all panels)
+  ============================================================ */
+  /* Monochrome + mint token palette — matches the matte site language
+     (the old purple/blue/amber scheme broke cohesion). */
+  .t-kw       { color: var(--text-secondary); }            /* keywords — dim */
+  .t-fn       { color: var(--text-primary); font-weight: 600; } /* function names */
+  .t-key      { color: var(--text-primary); }              /* object keys */
+  .t-str      { color: var(--mint); }                      /* strings — mint */
+  .t-typename { color: var(--mint); }                      /* inferred types — mint */
+  .t-op       { color: var(--text-muted); }
+  .t-paren    { color: var(--text-secondary); }
+  .t-comment  { color: var(--text-muted); font-style: italic; opacity: 0.75; }
+  .t-muted    { color: var(--text-muted); }
+
+  /* ============================================================
+     Panel 1 — Schema DSL: TypeScript tooltip mock
+  ============================================================ */
+  .schema-tooltip {
+    border: 1px solid var(--border-default);
+    border-radius: var(--r-md);
+    background: var(--bg-elevated);
+    overflow: hidden;
+    box-shadow:
+      var(--shadow-accent-glow),
+      0 0 0 1px rgba(242, 239, 234, 0.04);
+  }
+
+  .schema-tooltip__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .schema-tooltip__label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .schema-tooltip__badge {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    border: 1px solid var(--border-subtle);
+    border-radius: 3px;
+    padding: 2px 6px;
+    opacity: 0.7;
+  }
+
+  .schema-tooltip__type {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text-primary);
+    padding: 16px 20px;
+    margin: 0;
+    line-height: 1.7;
+    white-space: pre;
+    overflow-x: auto;
+  }
+
+  .schema-tooltip__footnote {
+    padding: 10px 16px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border-subtle);
+    line-height: 1.5;
+  }
+
+  .schema-tooltip__footnote code {
+    font-family: var(--font-mono);
+    color: var(--text-secondary);
+    background: rgba(255,255,255,0.06);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+
+  /* ============================================================
+     Panel 2 — Reactive queries: animated result rows
+  ============================================================ */
+  .live-results {
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    overflow: hidden;
+    background: var(--bg);
+  }
+
+  .live-results__header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .live-results__label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    flex: 1;
+  }
+
+  .live-results__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--mint);
+    animation: dot-pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes dot-pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.3; }
+  }
+
+  .live-results__rows {
+    padding: 4px 0;
+  }
+
+  .live-results__row {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-primary);
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: baseline;
+  }
+
+  .live-results__row:last-child {
+    border-bottom: none;
+  }
+
+  /* Row reveal animation — plays when panel 2 becomes active.
+     The CSS :checked + animation approach: the animation is defined on
+     the .live-row class, and it runs whenever the panel becomes visible
+     because display switches to grid, which restarts animations. */
+  .live-row {
+    opacity: 0;
+    animation: row-appear 600ms var(--ease-out) forwards;
+  }
+
+  .live-row--1 { animation-delay: 0.15s; }
+  .live-row--2 { animation-delay: 0.50s; }
+  .live-row--3 { animation-delay: 0.85s; }
+
+  @keyframes row-appear {
+    0%   { opacity: 0; transform: translateY(6px);
+           background: transparent; box-shadow: none; }
+    25%  { opacity: 1; transform: translateY(0);
+           background: rgba(168, 201, 127, 0.12);
+           box-shadow: inset 0 0 0 1px var(--mint); }
+    70%  { background: rgba(168, 201, 127, 0.12);
+           box-shadow: inset 0 0 0 1px var(--mint); }
+    100% { background: transparent; box-shadow: none; }
+  }
+
+  .live-results__footer {
+    padding: 10px 16px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border-subtle);
+    letter-spacing: 0.03em;
+  }
+
+  /* ============================================================
+     Panel 3 — Multi-process bridge: two window cards + arrow
+  ============================================================ */
+  .explorer__mock--bridge {
+    padding: 20px;
+    background: transparent;
+    border: none;
+    gap: 0;
+    justify-content: flex-start;
+  }
+
+  .bridge-windows {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    align-items: center;
+    width: 100%;
+  }
+
+  .bridge-window {
+    width: 100%;
+    border: 1px solid var(--border-default);
+    border-radius: var(--r-md);
+    overflow: hidden;
+    background: var(--bg-elevated);
+    box-shadow: var(--shadow-subtle);
+  }
+
+  .bridge-window__chrome {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .win-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .win-dot--red    { background: #FF5F57; }
+  .win-dot--yellow { background: #FEBC2E; }
+  .win-dot--green  { background: #28C840; }
+
+  .win-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-left: 6px;
+  }
+
+  .bridge-window__body {
+    padding: 10px 0;
+  }
+
+  .win-row {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-primary);
+    padding: 6px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .win-row:last-child { border-bottom: none; }
+
+  .win-row--static {
+    color: var(--text-secondary);
+  }
+
+  /* New row — appears with mint highlight */
+  .win-row--new {
+    opacity: 0;
+    color: var(--text-primary);
+    animation: win-row-appear 500ms var(--ease-out) 0.4s both;
+  }
+
+  .win-row--delayed {
+    animation-delay: 0.75s;
+  }
+
+  @keyframes win-row-appear {
+    0%   { opacity: 0; background: rgba(168, 201, 127, 0.18); }
+    40%  { opacity: 1; background: rgba(168, 201, 127, 0.18); }
+    100% { opacity: 1; background: transparent; }
+  }
+
+  /* Connecting arrow between windows */
+  .bridge-arrow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    color: var(--text-muted);
+    padding: 4px 0;
+    flex-shrink: 0;
+  }
+
+  .bridge-arrow__line {
+    animation: dash-flow 1.6s linear infinite;
+    stroke-dashoffset: 28;
+  }
+
+  @keyframes dash-flow {
+    to { stroke-dashoffset: 0; }
+  }
+
+  .bridge-arrow__label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--mint);
+    letter-spacing: 0.06em;
+    margin-top: 2px;
+  }
+
+  /* ============================================================
+     Panel 4 — Crash safety: transaction flow diagram
+  ============================================================ */
+  .explorer__mock--crash {
+    gap: 12px;
+    justify-content: flex-start;
+  }
+
+  .crash-diagram {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    align-items: center;
+    width: 100%;
+  }
+
+  /* Horizontal flow of pills */
+  .crash-flow {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 8px 0;
+  }
+
+  .crash-pill {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border: 1px solid var(--border-default);
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-muted);
+    background: var(--bg-elevated);
+    white-space: nowrap;
+    flex-shrink: 0;
+    opacity: 0;
+    animation: pill-appear 400ms var(--ease-out) forwards;
+  }
+
+  .crash-pill__icon {
+    font-size: 14px;
+    line-height: 1;
+  }
+
+  .crash-pill--4 {
+    color: var(--mint);
+    border-color: rgba(168, 201, 127, 0.35);
+  }
+
+  .crash-pill--1 { animation-delay: 0.10s; }
+  .crash-pill--2 { animation-delay: 0.35s; }
+  .crash-pill--3 { animation-delay: 0.60s; }
+  .crash-pill--4 { animation-delay: 0.85s; }
+
+  @keyframes pill-appear {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Connectors between pills */
+  .crash-connector {
+    width: 20px;
+    height: 1px;
+    background: var(--border-subtle);
+    flex-shrink: 0;
+    position: relative;
+    overflow: visible;
+  }
+
+  .crash-connector::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: -3px;
+    border-width: 3px 0 3px 5px;
+    border-style: solid;
+    border-color: transparent transparent transparent var(--border-subtle);
+  }
+
+  .crash-connector--1 { animation: connector-reveal 200ms var(--ease-out) 0.35s both; }
+  .crash-connector--2 { animation: connector-reveal 200ms var(--ease-out) 0.60s both; }
+  .crash-connector--3 { animation: connector-reveal 200ms var(--ease-out) 0.85s both; }
+
+  @keyframes connector-reveal {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  /* kill -9 lightning bolt */
+  .crash-kill {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    color: var(--error);
+    opacity: 0;
+    animation: kill-appear 400ms var(--ease-out) 1.2s both;
+  }
+
+  @keyframes kill-appear {
+    from { opacity: 0; transform: scale(0.85); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+
+  .crash-kill__bolt {
+    color: var(--error);
+    filter: drop-shadow(0 0 6px rgba(232, 80, 80, 0.5));
+    animation: bolt-flicker 0.12s ease-in-out 1.35s 3;
+  }
+
+  @keyframes bolt-flicker {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.4; }
+  }
+
+  .crash-kill__label {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--error);
+    letter-spacing: 0.04em;
+  }
+
+  /* Survived indicator */
+  .crash-survived {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    opacity: 0;
+    animation: survived-appear 500ms var(--ease-out) 1.8s both;
+  }
+
+  @keyframes survived-appear {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .crash-survived__icon {
+    font-family: var(--font-mono);
+    font-size: 18px;
+    color: var(--mint);
+    line-height: 1;
+  }
+
+  .crash-survived__text {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--mint);
+  }
+
+  .crash-caption {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: center;
+    margin: 4px 0 0;
+    line-height: 1.6;
+    letter-spacing: 0.02em;
+  }
+
+  /* ============================================================
+     Mobile breakpoint (<880px)
+  ============================================================ */
+  @media (max-width: 880px) {
+    .explorer {
+      padding: 64px 16px;
+    }
+
+    .explorer__heading {
+      font-size: 22px;
+      margin-bottom: 32px;
+    }
+
+    .explorer__tab {
+      padding: 12px 16px;
+      font-size: 12px;
+    }
+
+    /* Stack: code on top, mock on bottom */
+    .explorer__panel {
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+
+    .explorer__mock {
+      min-height: 160px;
+    }
+
+    .crash-flow {
+      justify-content: flex-start;
+    }
+  }
+
+  /* ============================================================
+     Reduced-motion — global override in tokens.css collapses all
+     animation durations to 0.01ms. We also ensure panels show
+     immediately by making opacity unconditionally visible.
+  ============================================================ */
+  @media (prefers-reduced-motion: reduce) {
+    .live-row,
+    .crash-pill,
+    .crash-connector,
+    .crash-kill,
+    .crash-survived,
+    .win-row--new,
+    .explorer__panel {
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+    }
+
+    .live-results__dot {
+      animation: none;
+      opacity: 1;
+    }
+
+    .bridge-arrow__line {
+      animation: none;
+    }
+
+    .crash-kill__bolt {
+      animation: none;
+    }
+  }
+</style>

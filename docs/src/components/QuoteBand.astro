@@ -1,0 +1,78 @@
+---
+/**
+ * Founder epigraph — formerly a full section-of-its-own with a 32px
+ * italic blockquote. Demoted to a thin band that sits between the hero
+ * and the first story card: a quieter mood-break that still carries the
+ * brand voice without competing with the hero manifesto above it.
+ *
+ * Visual: italic 16px line, attribution caption, hairline borders top
+ * and bottom. No background fill. The hero's lamp glow does the heavy
+ * lifting above; this is the breath after it.
+ */
+---
+
+<aside class="epigraph" aria-label="Founder note">
+  <div class="epigraph__inner">
+    <span class="epigraph__quotemark" aria-hidden="true">&ldquo;</span>
+    <p class="epigraph__quote">
+      Most "next-gen" databases are either too cloud or too academic. NookDB is for the people who just want to ship an Electron app and have their data work like they think it should.
+    </p>
+    <p class="epigraph__attribution">Ömer · Nookwright</p>
+  </div>
+</aside>
+
+<style>
+  .epigraph {
+    padding: 28px 24px;
+    border-top: 1px solid var(--border-subtle);
+    border-bottom: 1px solid var(--border-subtle);
+    background: transparent;
+  }
+
+  .epigraph__inner {
+    max-width: 760px;
+    margin: 0 auto;
+    text-align: center;
+    position: relative;
+  }
+
+  /* opening quotemark — small + offset upward so it reads as a glyph,
+     not a sticker; barely-there opacity to avoid competing with the line */
+  .epigraph__quotemark {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--font-sans);
+    font-size: 36px;
+    line-height: 1;
+    color: var(--text-muted);
+    opacity: 0.22;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .epigraph__quote {
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.65;
+    font-style: italic;
+    color: var(--text-secondary);
+    letter-spacing: -0.005em;
+  }
+
+  .epigraph__attribution {
+    margin: 10px 0 0;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--text-caption);
+  }
+
+  @media (max-width: 600px) {
+    .epigraph { padding: 22px 20px; }
+    .epigraph__quote { font-size: 14.5px; }
+  }
+</style>
