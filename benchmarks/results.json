@@ -1,0 +1,334 @@
+{
+  "machine": {
+    "platform": "win32",
+    "arch": "x64",
+    "node": "v25.6.1"
+  },
+  "timestamp": "2026-05-20T15:58:40.042Z",
+  "results": [
+    {
+      "case": "insert",
+      "seed": 1000,
+      "rows": [
+        {
+          "name": "nookdb · single insert",
+          "hz": 139.04451932742103,
+          "meanMs": 7191.941148325359,
+          "samples": 209
+        },
+        {
+          "name": "better-sqlite3 · single insert",
+          "hz": 46.8581108684022,
+          "meanMs": 21341.02253521128,
+          "samples": 71
+        }
+      ]
+    },
+    {
+      "case": "find",
+      "seed": 1000,
+      "rows": [
+        {
+          "name": "nookdb · find by id",
+          "hz": 9251.205629812443,
+          "meanMs": 108.09401931111047,
+          "samples": 13878
+        },
+        {
+          "name": "better-sqlite3 · find by id",
+          "hz": 34714.91675434802,
+          "meanMs": 28.80606072243427,
+          "samples": 52073
+        },
+        {
+          "name": "nookdb · find by indexed role",
+          "hz": 358.2532662809186,
+          "meanMs": 2791.3213754647695,
+          "samples": 538
+        },
+        {
+          "name": "better-sqlite3 · by indexed role",
+          "hz": 4788.168697122691,
+          "meanMs": 208.8481136015363,
+          "samples": 7183
+        },
+        {
+          "name": "nookdb · full scan",
+          "hz": 108.33942382569016,
+          "meanMs": 9230.250306748201,
+          "samples": 163
+        },
+        {
+          "name": "better-sqlite3 · full scan",
+          "hz": 1259.3289676595302,
+          "meanMs": 794.0736897829845,
+          "samples": 1889
+        }
+      ]
+    },
+    {
+      "case": "count",
+      "seed": 1000,
+      "rows": [
+        {
+          "name": "nookdb · count by role",
+          "hz": 513.3316222278048,
+          "meanMs": 1948.058441558901,
+          "samples": 770
+        },
+        {
+          "name": "better-sqlite3 · count by role",
+          "hz": 31178.282134490888,
+          "meanMs": 32.07360802260984,
+          "samples": 46768
+        }
+      ]
+    },
+    {
+      "case": "transaction",
+      "seed": 1000,
+      "rows": [
+        {
+          "name": "nookdb · 100-doc RMW (sequential awaits)",
+          "hz": 0.5697619266312671,
+          "meanMs": 1755119.0299999986,
+          "samples": 10
+        },
+        {
+          "name": "better-sqlite3 · 100-doc RMW tx",
+          "hz": 55.72846860955006,
+          "meanMs": 17944.149999998965,
+          "samples": 112
+        }
+      ]
+    },
+    {
+      "case": "live",
+      "seed": 1000,
+      "rows": [
+        {
+          "name": "nookdb · live() — 1 insert + emit",
+          "hz": 85.77985458120003,
+          "meanMs": 11657.74883720968,
+          "samples": 172
+        }
+      ]
+    },
+    {
+      "case": "insert",
+      "seed": 10000,
+      "rows": [
+        {
+          "name": "nookdb · single insert",
+          "hz": 116.49513146875539,
+          "meanMs": 8584.049714285316,
+          "samples": 175
+        },
+        {
+          "name": "better-sqlite3 · single insert",
+          "hz": 45.470085560202605,
+          "meanMs": 21992.481159420633,
+          "samples": 69
+        }
+      ]
+    },
+    {
+      "case": "find",
+      "seed": 10000,
+      "rows": [
+        {
+          "name": "nookdb · find by id",
+          "hz": 8603.44134987519,
+          "meanMs": 116.23255849992016,
+          "samples": 12906
+        },
+        {
+          "name": "better-sqlite3 · find by id",
+          "hz": 41574.96747349894,
+          "meanMs": 24.05293523410279,
+          "samples": 62363
+        },
+        {
+          "name": "nookdb · find by indexed role",
+          "hz": 38.15833908066114,
+          "meanMs": 26206.5913793089,
+          "samples": 58
+        },
+        {
+          "name": "better-sqlite3 · by indexed role",
+          "hz": 624.294212738929,
+          "meanMs": 1601.8088580587016,
+          "samples": 937
+        },
+        {
+          "name": "nookdb · full scan",
+          "hz": 12.0059041245139,
+          "meanMs": 83292.35263158396,
+          "samples": 19
+        },
+        {
+          "name": "better-sqlite3 · full scan",
+          "hz": 159.7324162561857,
+          "meanMs": 6260.470000003988,
+          "samples": 240
+        }
+      ]
+    },
+    {
+      "case": "count",
+      "seed": 10000,
+      "rows": [
+        {
+          "name": "nookdb · count by role",
+          "hz": 49.51601724317911,
+          "meanMs": 20195.48533333931,
+          "samples": 75
+        },
+        {
+          "name": "better-sqlite3 · count by role",
+          "hz": 14342.916432525863,
+          "meanMs": 69.72082732994734,
+          "samples": 21515
+        }
+      ]
+    },
+    {
+      "case": "transaction",
+      "seed": 10000,
+      "rows": [
+        {
+          "name": "nookdb · 100-doc RMW (sequential awaits)",
+          "hz": 0.5547216486646984,
+          "meanMs": 1802705.9199999785,
+          "samples": 10
+        },
+        {
+          "name": "better-sqlite3 · 100-doc RMW tx",
+          "hz": 45.85080377705838,
+          "meanMs": 21809.868478256725,
+          "samples": 92
+        }
+      ]
+    },
+    {
+      "case": "live",
+      "seed": 10000,
+      "rows": [
+        {
+          "name": "nookdb · live() — 1 insert + emit",
+          "hz": 118.85265242430131,
+          "meanMs": 8413.7794117545,
+          "samples": 238
+        }
+      ]
+    },
+    {
+      "case": "insert",
+      "seed": 100000,
+      "rows": [
+        {
+          "name": "nookdb · single insert",
+          "hz": 139.06412373165313,
+          "meanMs": 7190.927272728248,
+          "samples": 209
+        },
+        {
+          "name": "better-sqlite3 · single insert",
+          "hz": 53.19609803965465,
+          "meanMs": 18798.371249984484,
+          "samples": 80
+        }
+      ]
+    },
+    {
+      "case": "find",
+      "seed": 100000,
+      "rows": [
+        {
+          "name": "nookdb · find by id",
+          "hz": 7935.673579500571,
+          "meanMs": 126.01324764456035,
+          "samples": 11904
+        },
+        {
+          "name": "better-sqlite3 · find by id",
+          "hz": 38101.82473238893,
+          "meanMs": 26.24546217992383,
+          "samples": 57153
+        },
+        {
+          "name": "nookdb · find by indexed role",
+          "hz": 3.375748373876506,
+          "meanMs": 296230.61000001617,
+          "samples": 10
+        },
+        {
+          "name": "better-sqlite3 · by indexed role",
+          "hz": 53.68937831211992,
+          "meanMs": 18625.65802469459,
+          "samples": 81
+        },
+        {
+          "name": "nookdb · full scan",
+          "hz": 1.0811114457031048,
+          "meanMs": 924974.0199999884,
+          "samples": 10
+        },
+        {
+          "name": "better-sqlite3 · full scan",
+          "hz": 15.116020385597905,
+          "meanMs": 66154.97826086357,
+          "samples": 23
+        }
+      ]
+    },
+    {
+      "case": "count",
+      "seed": 100000,
+      "rows": [
+        {
+          "name": "nookdb · count by role",
+          "hz": 4.868022553739444,
+          "meanMs": 205422.220000159,
+          "samples": 10
+        },
+        {
+          "name": "better-sqlite3 · count by role",
+          "hz": 2153.061903969128,
+          "meanMs": 464.45482972715246,
+          "samples": 3230
+        }
+      ]
+    },
+    {
+      "case": "transaction",
+      "seed": 100000,
+      "rows": [
+        {
+          "name": "nookdb · 100-doc RMW (sequential awaits)",
+          "hz": 1.1860800694190798,
+          "meanMs": 843113.3999998681,
+          "samples": 10
+        },
+        {
+          "name": "better-sqlite3 · 100-doc RMW tx",
+          "hz": 110.12120507940324,
+          "meanMs": 9080.9031673686,
+          "samples": 221
+        }
+      ]
+    },
+    {
+      "case": "live",
+      "seed": 100000,
+      "rows": [
+        {
+          "name": "nookdb · live() — 1 insert + emit",
+          "hz": 328.55492307433906,
+          "meanMs": 3043.6311550070404,
+          "samples": 658
+        }
+      ]
+    }
+  ]
+}
