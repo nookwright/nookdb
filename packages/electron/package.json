@@ -1,6 +1,15 @@
 {
   "name": "@nookdb/electron",
   "version": "0.0.1",
+  "description": "Electron multi-process bindings for nookdb — main/preload/renderer IPC bridge.",
+  "homepage": "https://github.com/nookwright/nookdb/tree/main/packages/electron#readme",
+  "keywords": ["nookdb", "electron", "database", "ipc", "multi-process"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nookwright/nookdb.git",
+    "directory": "packages/electron"
+  },
+  "license": "MIT",
   "type": "module",
   "exports": {
     "./main": {
@@ -23,8 +32,11 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src --max-warnings=0"
   },
+  "engines": {
+    "node": ">= 20"
+  },
   "peerDependencies": {
-    "nookdb": "workspace:*",
+    "nookdb": "^1.0.0",
     "electron": ">=28"
   },
   "devDependencies": {
