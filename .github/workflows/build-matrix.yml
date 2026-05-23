@@ -1,0 +1,101 @@
+name: Build Matrix
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: build-matrix-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.target }} (${{ matrix.runner }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            runner: ubuntu-22.04
+            build: pnpm --filter @nookdb/binding exec napi build --platform --release --target x86_64-unknown-linux-gnu --js index.js --dts index.d.ts
+          - target: aarch64-unknown-linux-gnu
+            runner: ubuntu-22.04
+            setup: |
+              cargo install cargo-zigbuild
+              pip3 install ziglang
+              rustup target add aarch64-unknown-linux-gnu
+            build: pnpm --filter @nookdb/binding exec napi build --platform --release --target aarch64-unknown-linux-gnu --js index.js --dts index.d.ts --cross-compile
+          - target: x86_64-unknown-linux-musl
+            runner: ubuntu-22.04
+            setup: |
+              cargo install cargo-zigbuild
+              pip3 install ziglang
+              rustup target add x86_64-unknown-linux-musl
+            build: pnpm --filter @nookdb/binding exec napi build --platform --release --target x86_64-unknown-linux-musl --js index.js --dts index.d.ts --cross-compile
+          - target: x86_64-apple-darwin
+            runner: macos-13
+            build: pnpm --filter @nookdb/binding exec napi build --platform --release --target x86_64-apple-darwin --js index.js --dts index.d.ts
+          - target: aarch64-apple-darwin
+            runner: macos-14
+            build: pnpm --filter @nookdb/binding exec napi build --platform --release --target aarch64-apple-darwin --js index.js --dts index.d.ts
+          - target: x86_64-pc-windows-msvc
+            runner: windows-2022
+            build: pnpm --filter @nookdb/binding exec napi build --platform --release --target x86_64-pc-windows-msvc --js index.js --dts index.d.ts
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.target }}-cargo-
+
+      - name: Platform setup
+        if: matrix.setup != ''
+        run: ${{ matrix.setup }}
+
+      - name: Install JS deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Build binding
+        run: ${{ matrix.build }}
+
+      - name: Smoke import (host-compatible targets only)
+        if: matrix.target == 'x86_64-unknown-linux-gnu' || matrix.target == 'x86_64-apple-darwin' || matrix.target == 'aarch64-apple-darwin' || matrix.target == 'x86_64-pc-windows-msvc'
+        run: |
+          pnpm build:ts
+          node -e "const { open, s } = require('./packages/nookdb/dist/index.cjs'); (async () => { const db = await open(require('path').join(require('os').tmpdir(), 'nook-smoke-' + Date.now() + '.db'), { schema: { items: s.collection({ id: s.id(), v: s.number() }) } }); await db.items.insert({ id: 'a', v: 1 }); const all = await db.items.find({}); if (all.length !== 1) { process.exit(1); } db.close(); console.log('smoke OK'); })().catch(e => { console.error(e); process.exit(1); });"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: binding-${{ matrix.target }}
+          path: crates/nookdb-napi/*.node
+          if-no-files-found: error
+          retention-days: ${{ github.event_name == 'push' && 90 || 7 }}
