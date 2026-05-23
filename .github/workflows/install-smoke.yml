@@ -1,0 +1,38 @@
+name: Install Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to test (e.g., 1.0.0)'
+        required: true
+        type: string
+  schedule:
+    - cron: '0 */6 * * *'  # every 6h; disable after 48h post-release
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    name: ${{ matrix.os }} / Node ${{ matrix.node }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, macos-13, macos-14, windows-2022]
+        node: [20, 22, 24]
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Install + smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p smoke && cd smoke
+          npm init -y
+          VERSION="${{ inputs.version || '1.0.0' }}"
+          npm install "nookdb@$VERSION"
+          node -e "const { open, s } = require('nookdb'); (async () => { const db = await open(require('path').join(require('os').tmpdir(), 'smoke-' + Date.now() + '.db'), { schema: { items: s.collection({ id: s.id(), v: s.number() }) } }); await db.items.insert({ id: 'a', v: 1 }); const all = await db.items.find({}); if (all.length !== 1) process.exit(1); db.close(); console.log('OK'); })().catch(e => { console.error(e); process.exit(1); });"
