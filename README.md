@@ -2,11 +2,16 @@
 
 **Schema-first, reactive, local-first database for Electron.**
 
+[![npm version](https://img.shields.io/npm/v/nookdb.svg?label=nookdb)](https://www.npmjs.com/package/nookdb)
+[![CI](https://github.com/nookwright/nookdb/actions/workflows/ci.yml/badge.svg)](https://github.com/nookwright/nookdb/actions/workflows/ci.yml)
+[![Build Matrix](https://github.com/nookwright/nookdb/actions/workflows/build-matrix.yml/badge.svg)](https://github.com/nookwright/nookdb/actions/workflows/build-matrix.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 Built on a Rust core (redb) and exposed to Node via NAPI-rs. First-class multi-process support (Electron main ↔ renderer) out of the box.
 
 NookDB is the first product by **Nookwright** — more developer tools in the family to come.
 
-> ⚠️ **Pre-release.** Nook is at M4 (Multi-Process Bridge): the schema-first API, secondary indexes, reactive `live()`, and the typed Electron main↔renderer bridge (`@nookdb/electron`) have landed. 1.0 polish (CLI, backup/restore, 6-platform CI, public beta) is M5–M6 ahead; the public API is stabilizing but not yet 1.0.
+> 🎉 **1.0.0 released.** The public API is stable. Breaking changes follow semver.
 
 ## Why Nook?
 
@@ -26,8 +31,8 @@ NookDB is the first product by **Nookwright** — more developer tools in the fa
 | M4 — Multi-Process Bridge | ✅ Complete | `@nookdb/electron` (main / preload / renderer), schema handshake |
 | M5a — Polish (CLI + backup)   | ✅ Complete | @nookdb/cli, backup/restore, migration ledger hardening   |
 | M5b — Polish (assets)         | ✅ Complete | Docs site, examples, benchmarks, Migration Guide          |
-| M5c — Polish (release eng.)   | ⏳ Planned  | 6-platform CI matrix, open follow-ups, 1.0.0-beta.1       |
-| M6 — 1.0 Launch           | ⏳ Planned  | Public release                                                   |
+| M5c — Polish (release eng.)   | ✅ Complete | 6-platform CI matrix, release workflow, 1.0.0           |
+| M6 — 1.0 Launch           | ✅ Complete | Public release                                                   |
 
 
 ## Docs & examples
