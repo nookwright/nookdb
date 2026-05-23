@@ -1,0 +1,252 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: 'Dry-run (no publish to npm/crates.io)'
+        required: false
+        default: 'false'
+        type: choice
+        options: ['true', 'false']
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            runner: ubuntu-22.04
+          - target: aarch64-unknown-linux-gnu
+            runner: ubuntu-22.04
+            setup: |
+              cargo install cargo-zigbuild
+              pip3 install ziglang
+              rustup target add aarch64-unknown-linux-gnu
+            extra: --cross-compile
+          - target: x86_64-unknown-linux-musl
+            runner: ubuntu-22.04
+            setup: |
+              cargo install cargo-zigbuild
+              pip3 install ziglang
+              rustup target add x86_64-unknown-linux-musl
+            extra: --cross-compile
+          - target: x86_64-apple-darwin
+            runner: macos-13
+          - target: aarch64-apple-darwin
+            runner: macos-14
+          - target: x86_64-pc-windows-msvc
+            runner: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+        with: { version: 10 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: pnpm }
+      - uses: dtolnay/rust-toolchain@stable
+        with: { targets: '${{ matrix.target }}' }
+      - if: matrix.setup != ''
+        run: ${{ matrix.setup }}
+      - run: pnpm install --frozen-lockfile
+      - name: Build binding
+        run: pnpm --filter @nookdb/binding exec napi build --platform --release --target ${{ matrix.target }} --js index.js --dts index.d.ts ${{ matrix.extra }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binding-${{ matrix.target }}
+          path: crates/nookdb-napi/*.node
+          if-no-files-found: error
+
+  publish-bindings:
+    name: Publish binding packages
+    needs: build
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+        with: { version: 10 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: pnpm, registry-url: 'https://registry.npmjs.org' }
+      - run: pnpm install --frozen-lockfile
+      - name: Build TS (binding index.js/index.d.ts regeneration)
+        run: pnpm --filter @nookdb/binding exec napi build --platform --release --js index.js --dts index.d.ts
+      - uses: actions/download-artifact@v4
+        with:
+          path: crates/nookdb-napi/artifacts
+          pattern: binding-*
+          merge-multiple: false
+      - name: Stage native binaries for prepublish
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd crates/nookdb-napi
+          for dir in artifacts/binding-*; do
+            cp "$dir"/*.node ./
+          done
+          ls -la *.node
+      - name: NAPI prepublish (generates per-triple packages under npm/)
+        working-directory: crates/nookdb-napi
+        run: pnpm exec napi prepublish -t npm --skip-gh-release --no-gh-release
+      - name: Publish @nookdb/binding-<triple> packages
+        if: ${{ inputs.dry-run != 'true' }}
+        working-directory: crates/nookdb-napi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for pkg in npm/*; do
+            if [ -d "$pkg" ]; then
+              echo "Publishing $pkg"
+              ( cd "$pkg" && npm publish --provenance --access public )
+            fi
+          done
+      - name: Dry-run pack (when dry-run=true)
+        if: ${{ inputs.dry-run == 'true' }}
+        working-directory: crates/nookdb-napi
+        shell: bash
+        run: |
+          for pkg in npm/*; do
+            if [ -d "$pkg" ]; then
+              ( cd "$pkg" && npm pack --dry-run )
+            fi
+          done
+
+  publish-dispatcher-and-main:
+    name: Publish dispatcher and main JS packages
+    needs: publish-bindings
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+        with: { version: 10 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: pnpm, registry-url: 'https://registry.npmjs.org' }
+      - uses: dtolnay/rust-toolchain@stable
+      - run: pnpm install --frozen-lockfile
+      - name: Build binding (regenerate index.js/index.d.ts)
+        run: pnpm --filter @nookdb/binding exec napi build --platform --release --js index.js --dts index.d.ts
+      - run: pnpm build:ts
+      # Source manifest deliberately omits optionalDependencies because the 6 sibling
+      # @nookdb/binding-<triple> packages don't exist on npm at dev time; pnpm install
+      # --frozen-lockfile would fail. We inject them here, at publish time, pinned to
+      # the dispatcher's own version (always lock-step).
+      - name: Inject optionalDependencies into dispatcher package.json
+        shell: bash
+        run: |
+          node -e "const fs=require('fs'),p='crates/nookdb-napi/package.json',pkg=JSON.parse(fs.readFileSync(p,'utf8')),v=pkg.version;pkg.optionalDependencies={'@nookdb/binding-darwin-x64':v,'@nookdb/binding-darwin-arm64':v,'@nookdb/binding-linux-x64-gnu':v,'@nookdb/binding-linux-arm64-gnu':v,'@nookdb/binding-linux-x64-musl':v,'@nookdb/binding-win32-x64-msvc':v};fs.writeFileSync(p,JSON.stringify(pkg,null,2)+'\n');"
+          echo "--- injected manifest ---"
+          cat crates/nookdb-napi/package.json
+      - name: Publish @nookdb/binding (dispatcher)
+        if: ${{ inputs.dry-run != 'true' }}
+        working-directory: crates/nookdb-napi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public
+      - name: Publish nookdb
+        if: ${{ inputs.dry-run != 'true' }}
+        working-directory: packages/nookdb
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public
+      - name: Publish @nookdb/react
+        if: ${{ inputs.dry-run != 'true' }}
+        working-directory: packages/react
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public
+      - name: Publish @nookdb/electron
+        if: ${{ inputs.dry-run != 'true' }}
+        working-directory: packages/electron
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public
+      - name: Publish @nookdb/cli
+        if: ${{ inputs.dry-run != 'true' }}
+        working-directory: packages/cli
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public
+      - name: Dry-run pack
+        if: ${{ inputs.dry-run == 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for dir in crates/nookdb-napi packages/nookdb packages/react packages/electron packages/cli; do
+            echo "--- $dir ---"
+            ( cd "$dir" && npm pack --dry-run )
+          done
+
+  publish-crates:
+    name: Publish nookdb-core to crates.io
+    needs: publish-dispatcher-and-main
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: cargo publish (dry-run when requested)
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          if [ "${{ inputs.dry-run }}" = "true" ]; then
+            cargo publish -p nookdb-core --dry-run
+          else
+            cargo publish -p nookdb-core
+          fi
+
+  github-release:
+    name: GitHub Release
+    needs: publish-dispatcher-and-main
+    if: startsWith(github.ref, 'refs/tags/v') && inputs.dry-run != 'true'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      # Extracts the Keep a Changelog section for the released version.
+      # Expects `## [VERSION]` heading; copies lines until the next `## [` heading.
+      # Fails loudly if CHANGELOG.md is missing or the section is not found.
+      - name: Extract CHANGELOG section for this tag
+        id: changelog
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          if [ ! -f CHANGELOG.md ]; then
+            echo "::error::CHANGELOG.md is missing at repo root"
+            exit 1
+          fi
+          awk -v ver="$VERSION" '
+            /^## \[/ {
+              if (printing) exit
+              if ($0 ~ "\\[" ver "\\]") { printing = 1; print; next }
+            }
+            printing { print }
+          ' CHANGELOG.md > .release-notes.md
+          if [ ! -s .release-notes.md ]; then
+            echo "::error::CHANGELOG.md has no section for [$VERSION]"
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+      - uses: softprops/action-gh-release@v2
+        with:
+          body_path: .release-notes.md
+          name: ${{ steps.changelog.outputs.VERSION }}
+          tag_name: ${{ github.ref_name }}
+          draft: false
+          prerelease: false
