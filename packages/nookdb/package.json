@@ -25,8 +25,10 @@
     "lint": "eslint src --max-warnings=0",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
+  "dependencies": {
+    "@nookdb/binding": "workspace:*"
+  },
   "devDependencies": {
-    "@nookdb/binding": "workspace:*",
     "@vitest/coverage-v8": "^1.6.1"
   },
   "engines": {
