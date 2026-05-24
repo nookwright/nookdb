@@ -1,9 +1,15 @@
 {
   "name": "@nookdb/react",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "React hooks for nookdb — reactive live queries for React apps.",
   "homepage": "https://github.com/nookwright/nookdb/tree/main/packages/react#readme",
-  "keywords": ["nookdb", "react", "database", "reactive", "hook"],
+  "keywords": [
+    "nookdb",
+    "react",
+    "database",
+    "reactive",
+    "hook"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/nookwright/nookdb.git",
