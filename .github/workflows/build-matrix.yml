@@ -39,8 +39,12 @@ jobs:
               rustup target add x86_64-unknown-linux-musl
             build: pnpm --filter @nookdb/binding exec napi build --platform --release --target x86_64-unknown-linux-musl --js index.js --dts index.d.ts --cross-compile
           - target: x86_64-apple-darwin
-            runner: macos-13
-            build: pnpm --filter @nookdb/binding exec napi build --platform --release --target x86_64-apple-darwin --js index.js --dts index.d.ts
+            runner: macos-14
+            setup: |
+              brew install zig
+              cargo install --locked cargo-zigbuild
+              rustup target add x86_64-apple-darwin
+            build: pnpm --filter @nookdb/binding exec napi build --platform --release --target x86_64-apple-darwin --js index.js --dts index.d.ts --cross-compile
           - target: aarch64-apple-darwin
             runner: macos-14
             build: pnpm --filter @nookdb/binding exec napi build --platform --release --target aarch64-apple-darwin --js index.js --dts index.d.ts
@@ -87,7 +91,9 @@ jobs:
         run: ${{ matrix.build }}
 
       - name: Smoke import (host-compatible targets only)
-        if: matrix.target == 'x86_64-unknown-linux-gnu' || matrix.target == 'x86_64-apple-darwin' || matrix.target == 'aarch64-apple-darwin' || matrix.target == 'x86_64-pc-windows-msvc'
+        # x86_64-apple-darwin runs on macos-14 (arm64) via cross-compile, so the produced
+        # binary cannot be loaded on the build host; exclude from smoke.
+        if: matrix.target == 'x86_64-unknown-linux-gnu' || matrix.target == 'aarch64-apple-darwin' || matrix.target == 'x86_64-pc-windows-msvc'
         shell: bash
         run: |
           pnpm build:ts
