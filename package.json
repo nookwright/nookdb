@@ -11,7 +11,7 @@
   "scripts": {
     "build:napi": "pnpm --filter @nookdb/binding build",
     "build:napi:debug": "pnpm --filter @nookdb/binding build:debug",
-    "build:ts": "pnpm --filter nookdb build && pnpm --filter @nookdb/react build && pnpm --filter @nookdb/electron build",
+    "build:ts": "pnpm --filter nookdb build && pnpm --filter @nookdb/react build && pnpm --filter @nookdb/electron build && pnpm --filter @nookdb/cli build",
     "build": "pnpm build:napi && pnpm build:ts",
     "test:rust": "cargo nextest run --workspace --exclude nookdb-napi",
     "test:ts": "pnpm --filter nookdb test && pnpm --filter @nookdb/react test && pnpm --filter @nookdb/electron test",

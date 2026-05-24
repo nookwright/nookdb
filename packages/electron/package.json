@@ -11,6 +11,11 @@
   },
   "license": "MIT",
   "type": "module",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "exports": {
     "./main": {
       "types": "./dist/main/index.d.ts",
