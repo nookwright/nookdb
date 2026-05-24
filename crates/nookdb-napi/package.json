@@ -1,10 +1,14 @@
 {
   "name": "@nookdb/binding",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "NAPI-rs binding for nookdb-core. Platform-dispatch loader; binary lives in @nookdb/binding-<triple> sibling packages.",
   "main": "index.js",
   "types": "index.d.ts",
-  "files": ["index.js", "index.d.ts", "README.md"],
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "README.md"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -12,7 +16,9 @@
     "directory": "crates/nookdb-napi"
   },
   "homepage": "https://github.com/nookwright/nookdb#readme",
-  "engines": { "node": ">= 20" },
+  "engines": {
+    "node": ">= 20"
+  },
   "napi": {
     "binaryName": "nookdb-binding",
     "targets": [
