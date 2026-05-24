@@ -105,7 +105,8 @@ jobs:
           ls -la *.node
       - name: NAPI prepublish (generates per-triple packages under npm/)
         working-directory: crates/nookdb-napi
-        run: pnpm exec napi prepublish -t npm --skip-gh-release --no-gh-release
+        # napi-rs v3: --gh-release is opt-in (default off); no need for skip/no flags.
+        run: pnpm exec napi prepublish -t npm
       - name: Publish @nookdb/binding-<triple> packages
         if: ${{ inputs.dry-run != 'true' }}
         working-directory: crates/nookdb-napi
