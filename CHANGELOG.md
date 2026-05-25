@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-05-25
+
+### Fixed
+- **`nookdb` and `@nookdb/cli` were uninstallable from npm.** `release.yml` used `npm publish`, which does not rewrite pnpm's `workspace:*` protocol. The published 1.0.0 tarballs leaked `"@nookdb/binding": "workspace:*"` (in `nookdb`) and `"nookdb": "workspace:*"` (in `@nookdb/cli`) as runtime dependencies, causing `EUNSUPPORTEDPROTOCOL` on install. Pipeline switched to `pnpm publish` for the 5 main JS packages, which transforms workspace specifiers to the actual version at publish time.
+- `nookdb-core` (crate), `@nookdb/binding` (dispatcher), and the 6 per-triple binding siblings were unaffected — they have no `workspace:` references in their source manifests.
+
 ## [1.0.0] - 2026-05-25
 
 First stable release.

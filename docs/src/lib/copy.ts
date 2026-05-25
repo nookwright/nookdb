@@ -34,9 +34,9 @@ export const copy = {
     secondaryCta: 'Read the architecture →',
     quickStartCta: 'Quick start →',
     quickStartHref: '/quick-start/',
-    versionPill: 'pre-1.0',
+    versionPill: 'v1.0.0',
     preReleaseNote:
-      'Pre-1.0: API stabilizing — pin exact versions in production. Post-1.0: strict SemVer.',
+      'v1.0.0 — public API stable under strict SemVer. Breaking changes require a major bump.',
   },
   story: {
     schema: {
@@ -240,7 +240,7 @@ await db.migrateListApplied()
       },
       {
         q: 'How do I get help?',
-        a: 'GitHub issues — I read every one. There is no formal SLA pre-1.0, but bugs with a reproduction get attention fast.',
+        a: 'GitHub issues — I read every one. No formal SLA, but bugs with a reproduction get attention fast.',
       },
       {
         q: 'Does it phone home?',

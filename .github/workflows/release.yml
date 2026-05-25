@@ -166,31 +166,46 @@ jobs:
         working-directory: crates/nookdb-napi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --provenance --access public
+        # pnpm publish (vs npm publish) rewrites `workspace:*` deps to the
+        # actual version before uploading. npm publish leaves them verbatim,
+        # which makes the published tarball uninstallable.
+        run: pnpm publish --provenance --access public --no-git-checks
       - name: Publish nookdb
         if: ${{ inputs.dry-run != 'true' }}
         working-directory: packages/nookdb
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --provenance --access public
+        # pnpm publish (vs npm publish) rewrites `workspace:*` deps to the
+        # actual version before uploading. npm publish leaves them verbatim,
+        # which makes the published tarball uninstallable.
+        run: pnpm publish --provenance --access public --no-git-checks
       - name: Publish @nookdb/react
         if: ${{ inputs.dry-run != 'true' }}
         working-directory: packages/react
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --provenance --access public
+        # pnpm publish (vs npm publish) rewrites `workspace:*` deps to the
+        # actual version before uploading. npm publish leaves them verbatim,
+        # which makes the published tarball uninstallable.
+        run: pnpm publish --provenance --access public --no-git-checks
       - name: Publish @nookdb/electron
         if: ${{ inputs.dry-run != 'true' }}
         working-directory: packages/electron
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --provenance --access public
+        # pnpm publish (vs npm publish) rewrites `workspace:*` deps to the
+        # actual version before uploading. npm publish leaves them verbatim,
+        # which makes the published tarball uninstallable.
+        run: pnpm publish --provenance --access public --no-git-checks
       - name: Publish @nookdb/cli
         if: ${{ inputs.dry-run != 'true' }}
         working-directory: packages/cli
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --provenance --access public
+        # pnpm publish (vs npm publish) rewrites `workspace:*` deps to the
+        # actual version before uploading. npm publish leaves them verbatim,
+        # which makes the published tarball uninstallable.
+        run: pnpm publish --provenance --access public --no-git-checks
       - name: Dry-run pack
         if: ${{ inputs.dry-run == 'true' }}
         shell: bash
