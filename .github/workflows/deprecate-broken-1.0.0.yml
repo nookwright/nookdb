@@ -1,0 +1,44 @@
+name: Deprecate broken 1.0.0 (one-shot)
+
+# Marks the broken 1.0.0 npm packages as deprecated so anyone who pins
+# to that version sees a warning at install time. 1.0.1 fixed the
+# `workspace:*` protocol leak; 1.0.0 stays in the registry forever
+# (npm only allows actual unpublish in the first 72h, and even then
+# we don't want to break anyone who already installed it).
+#
+# Run once with workflow_dispatch, then this file can be deleted.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deprecate:
+    name: npm deprecate 1.0.0
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: 'https://registry.npmjs.org'
+      - name: Deprecate broken 1.0.0 packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          MSG="Broken release — pnpm workspace: protocol leaked into the published tarball, causing EUNSUPPORTEDPROTOCOL on install. Use 1.0.1+ instead."
+          for pkg in "nookdb" "@nookdb/cli"; do
+            echo "Deprecating $pkg@1.0.0"
+            npm deprecate "$pkg@1.0.0" "$MSG"
+          done
+          # @nookdb/react and @nookdb/electron only leaked into devDeps (no
+          # runtime impact), but for a clean registry story mark them too.
+          MSG_DEV="Released as part of broken 1.0.0 bundle (devDependencies referenced workspace: protocol). Use 1.0.1+ instead."
+          for pkg in "@nookdb/react" "@nookdb/electron"; do
+            echo "Deprecating $pkg@1.0.0"
+            npm deprecate "$pkg@1.0.0" "$MSG_DEV"
+          done
