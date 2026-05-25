@@ -93,57 +93,33 @@ jobs:
         with:
           path: crates/nookdb-napi/artifacts
           pattern: binding-*
-          merge-multiple: false
-      - name: Stage native binaries into npm/<triple>/ for prepublish
+          merge-multiple: true   # flatten: all .node files land directly under artifacts/
+      - name: Create npm/<triple>/ skeletons (package.json templates per target)
+        working-directory: crates/nookdb-napi
+        run: pnpm exec napi create-npm-dirs
+      - name: Distribute .node binaries into npm/<triple>/
+        working-directory: crates/nookdb-napi
+        run: pnpm exec napi artifacts --output-dir artifacts
+      - name: Show staged layout
         shell: bash
         working-directory: crates/nookdb-napi
-        run: |
-          set -euo pipefail
-          # napi prepublish v3 reads each binary from npm/<short-triple>/<binaryName>.<short-triple>.node
-          # (not the package root). download-artifact stored them at
-          # artifacts/binding-<full-triple>/<binaryName>.<short-triple>.node.
-          # Parse the short triple from the filename and stage each binary into its sibling dir.
-          shopt -s nullglob
-          for f in artifacts/binding-*/nookdb-binding.*.node; do
-            base=$(basename "$f" .node)            # nookdb-binding.darwin-x64
-            triple=${base#nookdb-binding.}         # darwin-x64
-            mkdir -p "npm/$triple"
-            cp "$f" "npm/$triple/"
-          done
-          echo "--- staged layout ---"
-          find npm -type f | sort
-      - name: NAPI prepublish (generates per-triple package.json files)
-        working-directory: crates/nookdb-napi
-        # napi-rs v3 prepublish always queries the GitHub releases API to check
-        # for an existing release, even when --gh-release is not passed. Provide
-        # GITHUB_TOKEN so that call returns a clean 404 instead of 401.
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: pnpm exec napi prepublish -t npm
-      - name: Publish @nookdb/binding-<triple> packages
+        run: find npm -type f | sort
+      - name: NAPI pre-publish (publishes each @nookdb/binding-<triple> package)
         if: ${{ inputs.dry-run != 'true' }}
         working-directory: crates/nookdb-napi
+        # napi pre-publish iterates targets and runs npm publish in each
+        # npm/<triple>/. GITHUB_TOKEN silences the (otherwise 401) GH releases
+        # API probe; NODE_AUTH_TOKEN authenticates the npm publish calls.
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          for pkg in npm/*; do
-            if [ -d "$pkg" ]; then
-              echo "Publishing $pkg"
-              ( cd "$pkg" && npm publish --provenance --access public )
-            fi
-          done
-      - name: Dry-run pack (when dry-run=true)
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm exec napi pre-publish -t npm
+      - name: NAPI pre-publish (dry-run)
         if: ${{ inputs.dry-run == 'true' }}
         working-directory: crates/nookdb-napi
-        shell: bash
-        run: |
-          for pkg in npm/*; do
-            if [ -d "$pkg" ]; then
-              ( cd "$pkg" && npm pack --dry-run )
-            fi
-          done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm exec napi pre-publish -t npm --dry-run
 
   publish-dispatcher-and-main:
     name: Publish dispatcher and main JS packages
