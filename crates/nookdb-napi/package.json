@@ -19,6 +19,11 @@
   "engines": {
     "node": ">= 20"
   },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "registry": "https://registry.npmjs.org/"
+  },
   "napi": {
     "binaryName": "nookdb-binding",
     "targets": [

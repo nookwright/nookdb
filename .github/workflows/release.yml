@@ -97,6 +97,20 @@ jobs:
       - name: Create npm/<triple>/ skeletons (package.json templates per target)
         working-directory: crates/nookdb-napi
         run: pnpm exec napi create-npm-dirs
+      - name: Ensure publishConfig.access=public on each sibling package.json
+        shell: bash
+        working-directory: crates/nookdb-napi
+        run: |
+          set -euo pipefail
+          # Scoped packages default to private on npm; without access=public the
+          # publish call returns 402. publishConfig on the dispatcher root may
+          # not propagate via napi create-npm-dirs; inject it explicitly on
+          # each generated sibling manifest.
+          for dir in npm/*/; do
+            node -e "const fs=require('fs'),p='${dir}package.json',pkg=JSON.parse(fs.readFileSync(p,'utf8'));pkg.publishConfig=Object.assign({access:'public',provenance:true,registry:'https://registry.npmjs.org/'},pkg.publishConfig||{});fs.writeFileSync(p,JSON.stringify(pkg,null,2)+'\n');"
+          done
+          echo "--- sample sibling manifest ---"
+          cat npm/darwin-x64/package.json
       - name: Distribute .node binaries into npm/<triple>/
         working-directory: crates/nookdb-napi
         run: pnpm exec napi artifacts --output-dir artifacts
