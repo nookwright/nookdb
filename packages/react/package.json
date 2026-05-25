@@ -1,6 +1,6 @@
 {
   "name": "@nookdb/react",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "React hooks for nookdb — reactive live queries for React apps.",
   "homepage": "https://github.com/nookwright/nookdb/tree/main/packages/react#readme",
   "keywords": [

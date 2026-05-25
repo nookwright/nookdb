@@ -1,4 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
-  <rect x="6" y="14" width="52" height="36" rx="6" fill="#3B82F6"/>
-  <text x="32" y="38" font-size="18" text-anchor="middle" font-family="ui-monospace" fill="white" font-weight="700">N</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <!-- NookDB navbar logo. Same mark as public/favicon.svg + icon.svg so the
+       header logo, browser favicon, and social/avatar all read as one identity. -->
+  <rect width="48" height="48" rx="8" fill="#0B0A09" />
+  <g stroke="#F2EFEA" stroke-linecap="round" stroke-linejoin="round" stroke-width="4">
+    <path d="M10 10 L10 38" />
+    <path d="M10 17 C10 11 20 10 26 16 L26 28 C26 33 30 34 34 34" />
+    <path d="M34 34 L34 38" />
+    <line x1="18" y1="24" x2="29" y2="24" stroke-width="2.5" />
+    <line x1="18" y1="29" x2="27" y2="29" stroke-width="2.5" />
+    <line x1="18" y1="34" x2="25" y2="34" stroke-width="2.5" opacity="0.6" />
+  </g>
 </svg>
