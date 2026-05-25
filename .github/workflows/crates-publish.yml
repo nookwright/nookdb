@@ -1,0 +1,29 @@
+name: Crates Publish (manual)
+
+# Standalone helper for re-publishing nookdb-core to crates.io when the
+# full release.yml succeeded for npm but failed at the crates step (or
+# was triggered before the crates.io account was configured). Not part
+# of the standard release flow — use only for recovery.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: crates-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish nookdb-core to crates.io
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: cargo publish
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish -p nookdb-core
