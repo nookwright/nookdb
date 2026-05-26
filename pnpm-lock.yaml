@@ -180,9 +180,6 @@ importers:
       nookdb:
         specifier: workspace:*
         version: link:../nookdb
-      tsx:
-        specifier: ^4.19.0
-        version: 4.22.3
     devDependencies:
       '@types/node':
         specifier: ^20.12.0
