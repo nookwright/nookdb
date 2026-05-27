@@ -7,7 +7,7 @@ export default defineConfig({
     starlight({
       title: 'nookdb',
       description: 'Schema-first, reactive, local-first database for Electron.',
-      logo: { src: './src/assets/logo.svg' },
+      logo: { src: './src/assets/logo.png' },
       social: {
         github: 'https://github.com/nookwright/nookdb',
       },

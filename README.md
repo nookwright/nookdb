@@ -1,19 +1,23 @@
-# Nook
+<p align="center">
+  <img src="./brand/nookdb-logo.png" alt="NookDB" width="128" />
+</p>
 
-**Schema-first, reactive, local-first database for Electron.**
+<h1 align="center">NookDB</h1>
 
-[![npm version](https://img.shields.io/npm/v/nookdb.svg?label=nookdb)](https://www.npmjs.com/package/nookdb)
-[![CI](https://github.com/nookwright/nookdb/actions/workflows/ci.yml/badge.svg)](https://github.com/nookwright/nookdb/actions/workflows/ci.yml)
-[![Build Matrix](https://github.com/nookwright/nookdb/actions/workflows/build-matrix.yml/badge.svg)](https://github.com/nookwright/nookdb/actions/workflows/build-matrix.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+<p align="center"><b>Schema-first, reactive, local-first database for Electron.</b></p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/nookdb"><img src="https://img.shields.io/npm/v/nookdb.svg?label=nookdb" alt="npm version" /></a>
+  <a href="https://github.com/nookwright/nookdb/actions/workflows/ci.yml"><img src="https://github.com/nookwright/nookdb/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="https://github.com/nookwright/nookdb/actions/workflows/build-matrix.yml"><img src="https://github.com/nookwright/nookdb/actions/workflows/build-matrix.yml/badge.svg" alt="Build Matrix" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" /></a>
+</p>
 
 Built on a Rust core (redb) and exposed to Node via NAPI-rs. First-class multi-process support (Electron main ↔ renderer) out of the box.
 
-NookDB is the first product by **Nookwright** — more developer tools in the family to come.
+> **1.0.1 released.** The public API is stable. Breaking changes follow semver.
 
-> 🎉 **1.0.0 released.** The public API is stable. Breaking changes follow semver.
-
-## Why Nook?
+## Why NookDB?
 
 - **Schema-first.** Define your data once; types, validation, and indexes flow from one source.
 - **Reactive by default.** Every query has a `.live()` variant. UI stays in sync with the database.
@@ -22,17 +26,7 @@ NookDB is the first product by **Nookwright** — more developer tools in the fa
 
 ## Status
 
-| Milestone                 | Status      | Description                                                      |
-| ------------------------- | ----------- | ---------------------------------------------------------------- |
-| M0 — Foundation           | ✅ Complete | Monorepo, NAPI-rs binding, CI                                    |
-| M1 — Storage              | ✅ Complete | redb integration, CRUD, transactions, kill-9 crash safety        |
-| M2 — Schema & Query       | ✅ Complete | `s.*` DSL, validator, queries, secondary index                   |
-| M3 — Reactive             | ✅ Complete | `live()`, post-commit notifier, `@nookdb/react`                  |
-| M4 — Multi-Process Bridge | ✅ Complete | `@nookdb/electron` (main / preload / renderer), schema handshake |
-| M5a — Polish (CLI + backup)   | ✅ Complete | @nookdb/cli, backup/restore, migration ledger hardening   |
-| M5b — Polish (assets)         | ✅ Complete | Docs site, examples, benchmarks, Migration Guide          |
-| M5c — Polish (release eng.)   | ✅ Complete | 6-platform CI matrix, release workflow, 1.0.0           |
-| M6 — 1.0 Launch           | ✅ Complete | Public release                                                   |
+**1.0 launched.** Milestones M0–M6 are complete: foundation, storage (redb + ACID + kill-9 safety), schema & query DSL, reactive `live()`, Electron multi-process bridge, polish (CLI, backup, docs, benchmarks), and 1.0 release engineering across a 6-platform native matrix.
 
 
 ## Docs & examples
@@ -43,6 +37,24 @@ NookDB is the first product by **Nookwright** — more developer tools in the fa
   - [`examples/electron-notes`](./examples/electron-notes/) — two-window reactive showcase
 - **Benchmarks:** [`benchmarks/`](./benchmarks/) — head-to-head against `better-sqlite3`
 - **Migrating from sehawq.db v5:** [docs page](https://nookdb.pages.dev/guides/migrating-from-sehawq-v5/) + [example script](./examples/migrate-from-sehawq-v5/)
+
+## Install
+
+```bash
+pnpm add nookdb
+# or
+npm install nookdb
+```
+
+Companion packages (install as needed):
+
+```bash
+pnpm add @nookdb/react      # useLive hook for React
+pnpm add @nookdb/electron   # main / preload / renderer bridge
+pnpm add -D @nookdb/cli     # nookdb backup | restore | migrate | inspect
+```
+
+Prebuilt native binaries ship for linux x64/arm64 (gnu + musl), macOS x64/arm64, and Windows x64-msvc. Requires **Node 20+**.
 
 ## Quick start
 
@@ -154,12 +166,13 @@ nookdb inspect ./app.db
 | Package             | Purpose                                                   |
 | ------------------- | --------------------------------------------------------- |
 | `nookdb`            | Core TypeScript API (schema, queries, reactive)           |
-| `@nookdb/react`     | `useLive` hook for React (M3+)                            |
+| `@nookdb/react`     | `useLive` hook for React                                  |
 | `@nookdb/electron`  | Multi-process bridge — `/main`, `/preload`, `/renderer`   |
+| `@nookdb/cli`       | `nookdb` CLI — `backup`, `restore`, `migrate`, `inspect`  |
 
 ## Development
 
-Prerequisites: Node 20+, pnpm 10+, Rust stable.
+Prerequisites: Node 20+, pnpm 10+, Rust stable (**MSRV 1.78**).
 
 ```bash
 pnpm install
@@ -175,6 +188,10 @@ pnpm --filter @nookdb/electron test:e2e
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+
+## About Nookwright
+
+NookDB is the first product by **Nookwright** — more developer tools in the family to come.
 
 ## License
 
