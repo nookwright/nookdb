@@ -490,6 +490,11 @@ impl JsDatabase {
     /// committed snapshot, NOT the in-flight buffer (M5c limitation;
     /// see M6 retrofit note in the design spec). The `txHandle` is
     /// accepted for API symmetry but is not consulted by the read path.
+    ///
+    /// `options_json` (sort/limit/offset) is accepted for parity with the
+    /// non-tx `find`, but the TS `TxCollection` surface does not yet pass
+    /// it — in-tx read options are reachable only once the TS tx-read path
+    /// forwards them (paired with the M6 tx-aware read retrofit).
     #[napi(js_name = "txFind")]
     pub async fn tx_find(
         &self,
