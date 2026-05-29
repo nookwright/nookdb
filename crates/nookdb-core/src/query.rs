@@ -44,25 +44,18 @@ impl QueryOptions {
         !self.sort.is_empty()
     }
 
-    /// Orders `docs` in place by the configured sort keys, then applies
-    /// `offset`/`limit`. Comparison is schema-typed via `field_ty`
-    /// (a lookup `field name → Option<&FieldType>`). null/missing values
-    /// sort LAST regardless of direction; ties break by `id_field` (ascending)
-    /// for deterministic pagination.
+    /// Validates that every sort field exists and is orderable (not an
+    /// array). Callers that sort (`apply`) AND callers that ignore sort but
+    /// must reject an invalid spec (`count`) both run this, so the
+    /// accept/reject decision is identical across read ops.
     ///
     /// # Errors
-    /// `NookError::Schema` if a sort field is unknown or its type is not
-    /// orderable (array).
-    pub fn apply<'f>(
+    /// `NookError::Schema` if a sort field is unknown or non-orderable.
+    pub fn validate_sort_fields<'f>(
         &self,
-        mut docs: Vec<serde_json::Value>,
-        id_field: &str,
         field_ty: impl Fn(&str) -> Option<&'f crate::schema::ir::FieldType>,
-    ) -> Result<Vec<serde_json::Value>, crate::error::NookError> {
+    ) -> Result<(), crate::error::NookError> {
         use crate::schema::ir::FieldType;
-        use std::cmp::Ordering;
-
-        // Validate sort fields up front.
         for (field, _) in &self.sort {
             match field_ty(field) {
                 None => {
@@ -78,6 +71,27 @@ impl QueryOptions {
                 Some(_) => {}
             }
         }
+        Ok(())
+    }
+
+    /// Orders `docs` in place by the configured sort keys, then applies
+    /// `offset`/`limit`. Comparison is schema-typed via `field_ty`
+    /// (a lookup `field name → Option<&FieldType>`). null/missing values
+    /// sort LAST regardless of direction; ties break by `id_field` (ascending)
+    /// for deterministic pagination.
+    ///
+    /// # Errors
+    /// `NookError::Schema` if a sort field is unknown or its type is not
+    /// orderable (array).
+    pub fn apply<'f>(
+        &self,
+        mut docs: Vec<serde_json::Value>,
+        id_field: &str,
+        field_ty: impl Fn(&str) -> Option<&'f crate::schema::ir::FieldType>,
+    ) -> Result<Vec<serde_json::Value>, crate::error::NookError> {
+        use std::cmp::Ordering;
+
+        self.validate_sort_fields(field_ty)?;
 
         if self.has_sort() {
             docs.sort_by(|a, b| {
@@ -85,11 +99,12 @@ impl QueryOptions {
                     let av = a.get(field);
                     let bv = b.get(field);
                     let ord = cmp_values(av, bv);
-                    let ord = match dir {
-                        SortDir::Asc => ord,
-                        // Desc flips only present-vs-present ordering; nulls
-                        // stay last (handled inside cmp_values via None-last).
-                        SortDir::Desc => ord.reverse_present(av, bv),
+                    // Desc flips only present-vs-present ordering; null/missing
+                    // stays LAST in both directions (handled via `is_absent`).
+                    let ord = if matches!(dir, SortDir::Desc) && !is_absent(av) && !is_absent(bv) {
+                        ord.reverse()
+                    } else {
+                        ord
                     };
                     if ord != Ordering::Equal {
                         return ord;
@@ -111,6 +126,14 @@ impl QueryOptions {
     }
 }
 
+/// `true` when a sort value is null or the field is missing — such values
+/// sort LAST regardless of direction. The single definition both
+/// `cmp_values` and `apply`'s desc-reversal consult, so the null-last rule
+/// lives in exactly one place.
+const fn is_absent(v: Option<&serde_json::Value>) -> bool {
+    matches!(v, None | Some(serde_json::Value::Null))
+}
+
 /// Total order across the JSON scalar types we sort, with null/missing LAST.
 ///
 /// Present values: numbers compared numerically, everything else (string,
@@ -120,7 +143,6 @@ impl QueryOptions {
 fn cmp_values(a: Option<&serde_json::Value>, b: Option<&serde_json::Value>) -> std::cmp::Ordering {
     use serde_json::Value;
     use std::cmp::Ordering;
-    let is_absent = |v: Option<&Value>| matches!(v, None | Some(Value::Null));
     match (is_absent(a), is_absent(b)) {
         (true, true) => Ordering::Equal,
         (true, false) => Ordering::Greater, // null/missing sorts last
@@ -128,15 +150,30 @@ fn cmp_values(a: Option<&serde_json::Value>, b: Option<&serde_json::Value>) -> s
         (false, false) => {
             let (a, b) = (a.unwrap(), b.unwrap());
             match (a, b) {
-                (Value::Number(x), Value::Number(y)) => x
-                    .as_f64()
-                    .partial_cmp(&y.as_f64())
-                    .unwrap_or(Ordering::Equal),
+                (Value::Number(x), Value::Number(y)) => cmp_numbers(x, y),
                 (Value::String(x), Value::String(y)) => x.cmp(y),
                 (Value::Bool(x), Value::Bool(y)) => x.cmp(y),
                 _ => type_rank(a).cmp(&type_rank(b)),
             }
         }
+    }
+}
+
+/// Orders two JSON numbers. Integers are compared EXACTLY (via `i64`/`u64`)
+/// so values above `2^53` don't collapse to `Equal` through an `f64` cast;
+/// only when a side isn't integer-representable (or signs differ across the
+/// i64/u64 split) do we fall back to `f64`.
+fn cmp_numbers(x: &serde_json::Number, y: &serde_json::Number) -> std::cmp::Ordering {
+    use std::cmp::Ordering;
+    if let (Some(a), Some(b)) = (x.as_i64(), y.as_i64()) {
+        return a.cmp(&b);
+    }
+    if let (Some(a), Some(b)) = (x.as_u64(), y.as_u64()) {
+        return a.cmp(&b);
+    }
+    match (x.as_f64(), y.as_f64()) {
+        (Some(a), Some(b)) => a.partial_cmp(&b).unwrap_or(Ordering::Equal),
+        _ => Ordering::Equal,
     }
 }
 
@@ -148,31 +185,6 @@ const fn type_rank(v: &serde_json::Value) -> u8 {
         Value::Number(_) => 1,
         Value::String(_) => 2,
         _ => 3,
-    }
-}
-
-/// Extension so a Desc sort flips present/present order but keeps null-last.
-trait ReversePresent {
-    fn reverse_present(
-        self,
-        a: Option<&serde_json::Value>,
-        b: Option<&serde_json::Value>,
-    ) -> std::cmp::Ordering;
-}
-impl ReversePresent for std::cmp::Ordering {
-    fn reverse_present(
-        self,
-        a: Option<&serde_json::Value>,
-        b: Option<&serde_json::Value>,
-    ) -> std::cmp::Ordering {
-        use serde_json::Value;
-        let is_absent = |v: Option<&Value>| matches!(v, None | Some(Value::Null));
-        // If either side is null/missing, DON'T reverse — null stays last.
-        if is_absent(a) || is_absent(b) {
-            self
-        } else {
-            self.reverse()
-        }
     }
 }
 
@@ -255,6 +267,24 @@ mod tests {
         let out = o.apply(docs, "id", num_ty).unwrap();
         let ns: Vec<_> = out.iter().map(|d| d.get("n").cloned()).collect();
         assert_eq!(ns, vec![Some(json!(3)), Some(json!(1)), None]);
+    }
+
+    #[test]
+    fn sorts_large_integers_exactly() {
+        // Two distinct integers above 2^53 that collapse to the same f64.
+        // The old `as_f64` comparison ranked them Equal (then id tie-break);
+        // exact i64 comparison must order 992 before 993.
+        let o = QueryOptions::parse(Some(r#"{"sort":[["n","asc"]]}"#)).unwrap();
+        let docs = vec![
+            json!({"id":"a","n": 9_007_199_254_740_993_i64}),
+            json!({"id":"b","n": 9_007_199_254_740_992_i64}),
+        ];
+        let out = o.apply(docs, "id", num_ty).unwrap();
+        let ids: Vec<_> = out
+            .iter()
+            .map(|d| d["id"].as_str().unwrap().to_string())
+            .collect();
+        assert_eq!(ids, vec!["b", "a"]);
     }
 
     #[test]

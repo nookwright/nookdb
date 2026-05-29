@@ -234,17 +234,21 @@ impl<'a> Collection<'a> {
         self.count_with(filter, &crate::query::QueryOptions::default())
     }
 
-    /// `count` honoring `opts`: `sort` is ignored (irrelevant to a count);
-    /// `offset`/`limit` cap the returned count ("are there at most N?").
+    /// `count` honoring `opts`: `sort` does not change a count so it is not
+    /// applied, but an INVALID `sort` field is still rejected so `count` and
+    /// `find` accept/reject identical options identically; `offset`/`limit`
+    /// cap the returned count ("are there at most N?").
     ///
     /// # Errors
     ///
-    /// Storage/corruption errors.
+    /// Storage/corruption errors; `NookError::Schema` if a sort field is
+    /// unknown or non-orderable.
     pub fn count_with(
         &self,
         filter: &Value,
         opts: &crate::query::QueryOptions,
     ) -> Result<usize, NookError> {
+        opts.validate_sort_fields(|f| self.ir.field(f).map(|fi| &fi.ty))?;
         let total = self
             .candidates(filter)?
             .into_iter()
@@ -687,5 +691,18 @@ mod tests {
             2
         );
         assert_eq!(c.count_with(&f, &parse(r#"{"limit":0}"#)).unwrap(), 0);
+    }
+
+    #[test]
+    fn count_with_rejects_invalid_sort_field() {
+        // count ignores sort for the tally, but must still reject an invalid
+        // sort spec so count and find accept/reject identical options alike.
+        let (_d, db, ir) = setup_numeric();
+        let c = Collection::new(&db, &ir, "u").unwrap();
+        c.insert(&serde_json::json!({"id": "a", "n": 1})).unwrap();
+        let opts =
+            crate::query::QueryOptions::parse(Some(r#"{"sort":[["bogus","asc"]]}"#)).unwrap();
+        let err = c.count_with(&serde_json::json!({}), &opts).unwrap_err();
+        assert!(matches!(err, NookError::Schema { .. }));
     }
 }
