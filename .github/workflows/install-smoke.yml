@@ -8,7 +8,7 @@ on:
         required: true
         type: string
   schedule:
-    - cron: '0 */6 * * *'  # every 6h; disable after 48h post-release
+    - cron: '0 6 * * *'  # daily; smoke-tests the latest published release
 
 permissions:
   contents: read
@@ -33,6 +33,6 @@ jobs:
           set -euo pipefail
           mkdir -p smoke && cd smoke
           npm init -y
-          VERSION="${{ inputs.version || '1.0.0' }}"
+          VERSION="${{ inputs.version || 'latest' }}"
           npm install "nookdb@$VERSION"
           node -e "const { open, s } = require('nookdb'); (async () => { const db = await open(require('path').join(require('os').tmpdir(), 'smoke-' + Date.now() + '.db'), { schema: { items: s.collection({ id: s.id(), v: s.number() }) } }); await db.items.insert({ id: 'a', v: 1 }); const all = await db.items.find({}); if (all.length !== 1) process.exit(1); db.close(); console.log('OK'); })().catch(e => { console.error(e); process.exit(1); });"
