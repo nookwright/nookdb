@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+- **Query options (`sort` / `limit` / `offset`) across all layers (#20).** `find`, `findOne`, and `count` now accept an options object to sort by a schema field (nulls-last, with a stable `id` tie-break), cap results with `limit`, and page with `offset`. The options flow end to end: through the Rust core (`find_with` / `find_one_with` / `count_with`), the typed `nookdb` API, and reactive `live()` subscriptions, which carry the options through every recompute.
+
 ## [1.0.1] - 2026-05-25
 
 ### Fixed
@@ -32,5 +35,5 @@ First stable release.
 - Node 20+ supported. Node 18 explicitly not supported.
 - Electron 28+ supported (MessagePortMain modern API requirement).
 
-[Unreleased]: https://github.com/nookwright/nookdb/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/nookwright/nookdb/compare/v1.0.1...HEAD
 [1.0.0]: https://github.com/nookwright/nookdb/releases/tag/v1.0.0
