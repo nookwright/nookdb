@@ -28,6 +28,37 @@ import { mapNativeError } from './errors.js';
 import { applyDefaults } from './schema/defaults.js';
 import { LiveQuery, type LiveNative } from './live.js';
 
+/** Sort/pagination options for read queries. */
+export interface QueryOptions {
+  /** Field → direction. Object key order is the sort-priority order. */
+  sort?: Record<string, 'asc' | 'desc'>;
+  /** Max rows to return (non-negative integer). */
+  limit?: number;
+  /** Rows to skip before returning (non-negative integer). */
+  offset?: number;
+}
+
+/**
+ * Serializes {@link QueryOptions} to the wire `optionsJson`, or `undefined`
+ * when there's nothing to send. `sort` becomes an array of `[field, dir]`
+ * pairs so key/priority order survives the Rust-side JSON decode (a JSON
+ * object would lose order).
+ */
+function serializeOptions(options?: QueryOptions): string | undefined {
+  if (!options) return undefined;
+  const wire: { sort?: [string, string][]; limit?: number; offset?: number } = {};
+  if (options.sort) {
+    const pairs = Object.entries(options.sort);
+    if (pairs.length > 0) wire.sort = pairs;
+  }
+  if (options.limit !== undefined) wire.limit = options.limit;
+  if (options.offset !== undefined) wire.offset = options.offset;
+  if (wire.sort === undefined && wire.limit === undefined && wire.offset === undefined) {
+    return undefined;
+  }
+  return JSON.stringify(wire);
+}
+
 /**
  * The schema-aware subset of the native `Database` used by the typed
  * proxy. Declared here (rather than imported from the binding `.d.ts`)
@@ -36,9 +67,9 @@ import { LiveQuery, type LiveNative } from './live.js';
  */
 export interface NativeSchemaDatabase extends LiveNative {
   insert(collection: string, docJson: string): Promise<void>;
-  find(collection: string, filterJson: string): Promise<string[]>;
-  findOne(collection: string, filterJson: string): Promise<string | null>;
-  count(collection: string, filterJson: string): Promise<number>;
+  find(collection: string, filterJson: string, optionsJson?: string): Promise<string[]>;
+  findOne(collection: string, filterJson: string, optionsJson?: string): Promise<string | null>;
+  count(collection: string, filterJson: string, optionsJson?: string): Promise<number>;
   deleteMany(collection: string, filterJson: string): Promise<number>;
   // S2a — transaction primitives (M5c T4 on the Rust side). The Rust core
   // buffers `txInsert` / `txDeleteMany` ops against `txHandle` and replays
@@ -104,11 +135,11 @@ export interface Collection<TDoc> {
    */
   insert(doc: InsertDoc<TDoc>): Promise<void>;
   /** Returns every document matching `filter` (default: all documents). */
-  find(filter?: Record<string, unknown>): Promise<TDoc[]>;
+  find(filter?: Record<string, unknown>, options?: QueryOptions): Promise<TDoc[]>;
   /** Returns the first document matching `filter`, or `null`. */
-  findOne(filter?: Record<string, unknown>): Promise<TDoc | null>;
+  findOne(filter?: Record<string, unknown>, options?: QueryOptions): Promise<TDoc | null>;
   /** Returns the number of documents matching `filter`. */
-  count(filter?: Record<string, unknown>): Promise<number>;
+  count(filter?: Record<string, unknown>, options?: QueryOptions): Promise<number>;
   /** Deletes every document matching `filter`, returning the count removed. */
   delete(filter?: Record<string, unknown>): Promise<number>;
   /**
@@ -128,7 +159,7 @@ export interface Collection<TDoc> {
    * {@link LiveQuery} fires its subscribers/async-iterator on every
    * committed write that touches a document matching `filter`.
    */
-  live(filter?: Record<string, unknown>): LiveQuery<TDoc>;
+  live(filter?: Record<string, unknown>, options?: QueryOptions): LiveQuery<TDoc>;
 }
 
 /**
@@ -213,10 +244,10 @@ export function makeCollection<TDoc>(
       }
     },
 
-    async find(filter: Record<string, unknown> = {}): Promise<TDoc[]> {
+    async find(filter: Record<string, unknown> = {}, options?: QueryOptions): Promise<TDoc[]> {
       let rows: string[];
       try {
-        rows = await native.find(collName, JSON.stringify(filter));
+        rows = await native.find(collName, JSON.stringify(filter), serializeOptions(options));
       } catch (err) {
         throw mapNativeError(err);
       }
@@ -229,10 +260,10 @@ export function makeCollection<TDoc>(
       return rows.map((r) => JSON.parse(r) as TDoc);
     },
 
-    async findOne(filter: Record<string, unknown> = {}): Promise<TDoc | null> {
+    async findOne(filter: Record<string, unknown> = {}, options?: QueryOptions): Promise<TDoc | null> {
       let row: string | null;
       try {
-        row = await native.findOne(collName, JSON.stringify(filter));
+        row = await native.findOne(collName, JSON.stringify(filter), serializeOptions(options));
       } catch (err) {
         throw mapNativeError(err);
       }
@@ -240,9 +271,9 @@ export function makeCollection<TDoc>(
       return row === null ? null : (JSON.parse(row) as TDoc);
     },
 
-    async count(filter: Record<string, unknown> = {}): Promise<number> {
+    async count(filter: Record<string, unknown> = {}, options?: QueryOptions): Promise<number> {
       try {
-        return await native.count(collName, JSON.stringify(filter));
+        return await native.count(collName, JSON.stringify(filter), serializeOptions(options));
       } catch (err) {
         throw mapNativeError(err);
       }
@@ -268,8 +299,8 @@ export function makeCollection<TDoc>(
       return transactionFn((tx) => applyUpdateLoop<TDoc>(tx, filter, patch));
     },
 
-    live(filter: Record<string, unknown> = {}): LiveQuery<TDoc> {
-      return new LiveQuery<TDoc>(native, collName, filter);
+    live(filter: Record<string, unknown> = {}, options?: QueryOptions): LiveQuery<TDoc> {
+      return new LiveQuery<TDoc>(native, collName, filter, serializeOptions(options));
     },
   };
 }

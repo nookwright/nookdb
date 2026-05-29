@@ -18,7 +18,7 @@ function stubNative(initial: unknown[]) {
   let cb: ((env: string) => void) | undefined;
   const liveCancel = vi.fn<[string], void>();
   const native: LiveNative = {
-    live: vi.fn((_c: string, _f: string, onEmit: (env: string) => void) => {
+    live: vi.fn((_c: string, _f: string, _o: string | undefined, onEmit: (env: string) => void) => {
       cb = onEmit;
       return Promise.resolve({
         subscriptionId: 's1',
@@ -150,5 +150,15 @@ describe('LiveQuery', () => {
     await vi.waitFor(() => expect(seen.length).toBe(4));
     await loop;
     expect(seen).toEqual([[], [1], [2], [3]]);
+  });
+
+  it('forwards optionsJson to native.live', async () => {
+    const live = vi.fn(() => Promise.resolve({ subscriptionId: 's1', initialJson: '{"ok":true,"value":[]}' }));
+    const liveCancel = vi.fn();
+    const native = { live, liveCancel } as unknown as LiveNative;
+    const optionsJson = JSON.stringify({ sort: [['n', 'asc']], limit: 3 });
+    new LiveQuery(native, 'u', { role: 'user' }, optionsJson);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(live).toHaveBeenCalledWith('u', JSON.stringify({ role: 'user' }), optionsJson, expect.any(Function));
   });
 });
