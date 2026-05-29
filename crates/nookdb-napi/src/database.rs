@@ -290,12 +290,18 @@ impl JsDatabase {
     ///
     /// Requires the database to have been opened via `openWithSchema`.
     #[napi]
-    pub async fn find(&self, collection: String, filter_json: String) -> napi::Result<Vec<String>> {
+    pub async fn find(
+        &self,
+        collection: String,
+        filter_json: String,
+        options_json: Option<String>,
+    ) -> napi::Result<Vec<String>> {
         let (db, schema) = self.get_db_and_schema()?;
         let filter = parse_filter(&filter_json)?;
+        let opts = parse_options(options_json)?;
         let docs = tokio::task::spawn_blocking(move || {
             let c = Collection::new(&db, &schema, &collection)?;
-            c.find(&filter)
+            c.find_with(&filter, &opts)
         })
         .await
         .map_err(map_join_error)?
@@ -312,12 +318,14 @@ impl JsDatabase {
         &self,
         collection: String,
         filter_json: String,
+        options_json: Option<String>,
     ) -> napi::Result<Option<String>> {
         let (db, schema) = self.get_db_and_schema()?;
         let filter = parse_filter(&filter_json)?;
+        let opts = parse_options(options_json)?;
         let doc = tokio::task::spawn_blocking(move || {
             let c = Collection::new(&db, &schema, &collection)?;
-            c.find_one(&filter)
+            c.find_one_with(&filter, &opts)
         })
         .await
         .map_err(map_join_error)?
@@ -330,12 +338,18 @@ impl JsDatabase {
     ///
     /// Requires the database to have been opened via `openWithSchema`.
     #[napi]
-    pub async fn count(&self, collection: String, filter_json: String) -> napi::Result<u32> {
+    pub async fn count(
+        &self,
+        collection: String,
+        filter_json: String,
+        options_json: Option<String>,
+    ) -> napi::Result<u32> {
         let (db, schema) = self.get_db_and_schema()?;
         let filter = parse_filter(&filter_json)?;
+        let opts = parse_options(options_json)?;
         let n = tokio::task::spawn_blocking(move || {
             let c = Collection::new(&db, &schema, &collection)?;
-            c.count(&filter)
+            c.count_with(&filter, &opts)
         })
         .await
         .map_err(map_join_error)?
@@ -482,6 +496,7 @@ impl JsDatabase {
         tx_handle: i64,
         collection: String,
         filter_json: String,
+        options_json: Option<String>,
     ) -> napi::Result<Vec<String>> {
         // M5c limitation: tx-aware read deferred to M6. The handle is
         // accepted purely for API symmetry; the actual read goes via
@@ -500,7 +515,7 @@ impl JsDatabase {
                 ));
             }
         }
-        self.find(collection, filter_json).await
+        self.find(collection, filter_json, options_json).await
     }
 
     /// Same M5c limitation as `txFind`: reads see the latest committed
@@ -511,6 +526,7 @@ impl JsDatabase {
         tx_handle: i64,
         collection: String,
         filter_json: String,
+        options_json: Option<String>,
     ) -> napi::Result<Option<String>> {
         {
             let guard = self.tx_states.lock().map_err(|_| {
@@ -522,7 +538,7 @@ impl JsDatabase {
                 ));
             }
         }
-        self.find_one(collection, filter_json).await
+        self.find_one(collection, filter_json, options_json).await
     }
 
     /// Same M5c limitation as `txFind`: reads see the latest committed
@@ -533,6 +549,7 @@ impl JsDatabase {
         tx_handle: i64,
         collection: String,
         filter_json: String,
+        options_json: Option<String>,
     ) -> napi::Result<u32> {
         {
             let guard = self.tx_states.lock().map_err(|_| {
@@ -544,7 +561,7 @@ impl JsDatabase {
                 ));
             }
         }
-        self.count(collection, filter_json).await
+        self.count(collection, filter_json, options_json).await
     }
 
     /// Replays the buffered ops for `txHandle` atomically inside one
@@ -781,6 +798,7 @@ impl JsDatabase {
         &self,
         collection: String,
         filter_json: String,
+        options_json: Option<String>,
         // Inline (not the `crate::live::EmitTsfn` alias) so napi-derive's
         // TS codegen resolves it to a proper JS function type in the
         // generated `.d.ts` (an alias identifier would be emitted
@@ -793,16 +811,18 @@ impl JsDatabase {
                 msg: format!("invalid filter JSON: {e}"),
             })
         })?;
+        let opts = parse_options(options_json)?;
         let sink = Arc::new(TsfnSink::new(on_emit));
         let sink_dyn: Arc<dyn nookdb_core::live::EmitSink> = sink.clone();
         // `register` computes the initial snapshot synchronously via
         // `Collection::find` (a blocking redb read) — run it on the
         // blocking pool like every other typed op so the async runtime
         // isn't stalled.
-        let (sub, initial) =
-            tokio::task::spawn_blocking(move || engine.register(&collection, filter, sink_dyn))
-                .await
-                .map_err(map_join_error)?;
+        let (sub, initial) = tokio::task::spawn_blocking(move || {
+            engine.register(&collection, filter, opts, sink_dyn)
+        })
+        .await
+        .map_err(map_join_error)?;
         let id = next_live_id();
         self.live_registry_insert(id.clone(), sub, sink);
         Ok(LiveRegistration {
@@ -970,6 +990,12 @@ fn parse_filter(filter_json: &str) -> napi::Result<serde_json::Value> {
             msg: format!("invalid filter JSON: {e}"),
         })
     })
+}
+
+/// Decodes the optional `optionsJson` wire payload into core `QueryOptions`.
+/// `None`/empty → default. Decode errors map to a typed `[invalid_arg]`.
+fn parse_options(options_json: Option<String>) -> napi::Result<nookdb_core::query::QueryOptions> {
+    nookdb_core::query::QueryOptions::parse(options_json.as_deref()).map_err(map_nook_error)
 }
 
 /// Serialises one document `Value` back to a JSON string. A serialisation
