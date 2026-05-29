@@ -71,6 +71,7 @@ describe('makeCollection — live()', () => {
       expect(native.live).toHaveBeenCalledWith(
         'orders',
         JSON.stringify({ status: 'open' }),
+        undefined,
         expect.any(Function),
       ),
     );

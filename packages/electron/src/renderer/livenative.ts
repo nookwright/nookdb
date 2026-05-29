@@ -35,7 +35,11 @@ export function remoteLiveNative(
   let nextSubId = 1;
 
   return {
-    async live(collection, filterJson, onEmit) {
+    // `optionsJson` (the public `QueryOptions` JSON — sort/limit/offset) is
+    // forwarded verbatim in the `subscribe` wire envelope; the Host parses it
+    // and applies it to `coll.live(filter, options)`. `undefined` when the
+    // caller passed no options.
+    async live(collection, filterJson, optionsJson, onEmit) {
       const subscriptionId = `sub-${nextSubId++}`;
       sinks.set(subscriptionId, onEmit);
       const reply = await dispatcher.send({
@@ -44,6 +48,7 @@ export function remoteLiveNative(
         subscriptionId,
         collection,
         filterJson,
+        optionsJson,
       });
       if (!reply.ok) {
         sinks.delete(subscriptionId);

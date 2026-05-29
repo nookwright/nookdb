@@ -24,9 +24,72 @@
  * surfaces as the matching typed `NookError` subclass.
  */
 
-import { mapNativeError } from './errors.js';
+import { mapNativeError, NookInvalidArgError } from './errors.js';
 import { applyDefaults } from './schema/defaults.js';
 import { LiveQuery, type LiveNative } from './live.js';
+
+/** One `[field, direction]` sort key, used by the order-safe array form. */
+export type SortKey = readonly [field: string, direction: 'asc' | 'desc'];
+
+/** Sort/pagination options for read queries. */
+export interface QueryOptions {
+  /**
+   * Sort keys, highest priority first.
+   *
+   * Two forms:
+   * - **Object** `{ field: direction }` — ergonomic for the common case.
+   *   Priority follows key order, BUT JavaScript hoists integer-like keys
+   *   (e.g. `"2"`, `"2024"`) ahead of string keys, so a multi-key object
+   *   that includes an integer-like field name cannot express a reliable
+   *   priority — that case throws; use the array form instead.
+   * - **Array** `[[field, direction], ...]` — guarantees priority order for
+   *   ANY field names, including integer-like ones.
+   */
+  sort?: Record<string, 'asc' | 'desc'> | readonly SortKey[];
+  /** Max rows to return (non-negative integer). */
+  limit?: number;
+  /** Rows to skip before returning (non-negative integer). */
+  offset?: number;
+}
+
+/**
+ * Serializes {@link QueryOptions} to the wire `optionsJson`, or `undefined`
+ * when there's nothing to send. `sort` always becomes an array of
+ * `[field, dir]` pairs so key/priority order survives the Rust-side JSON
+ * decode (a JSON object would lose order). The array form is used verbatim;
+ * the object form is converted via `Object.entries`, which is reliable
+ * unless integer-like keys would be reordered (guarded below).
+ *
+ * @throws {NookInvalidArgError} when `sort` is given in object form with
+ *   more than one key and an integer-like field name, since JS key ordering
+ *   would silently rewrite the sort priority.
+ */
+function serializeOptions(options?: QueryOptions): string | undefined {
+  if (!options) return undefined;
+  const wire: { sort?: [string, string][]; limit?: number; offset?: number } = {};
+  if (options.sort) {
+    let pairs: [string, string][];
+    if (Array.isArray(options.sort)) {
+      pairs = (options.sort as readonly SortKey[]).map(([f, d]) => [f, d] as [string, string]);
+    } else {
+      pairs = Object.entries(options.sort as Record<string, 'asc' | 'desc'>);
+      if (pairs.length > 1 && pairs.some(([k]) => /^\d+$/.test(k))) {
+        throw new NookInvalidArgError(
+          'sort priority is unreliable for integer-like field names in object form ' +
+            '(JS reorders integer-like keys); pass sort as an array of ' +
+            '[field, direction] pairs instead',
+        );
+      }
+    }
+    if (pairs.length > 0) wire.sort = pairs;
+  }
+  if (options.limit !== undefined) wire.limit = options.limit;
+  if (options.offset !== undefined) wire.offset = options.offset;
+  if (wire.sort === undefined && wire.limit === undefined && wire.offset === undefined) {
+    return undefined;
+  }
+  return JSON.stringify(wire);
+}
 
 /**
  * The schema-aware subset of the native `Database` used by the typed
@@ -36,9 +99,9 @@ import { LiveQuery, type LiveNative } from './live.js';
  */
 export interface NativeSchemaDatabase extends LiveNative {
   insert(collection: string, docJson: string): Promise<void>;
-  find(collection: string, filterJson: string): Promise<string[]>;
-  findOne(collection: string, filterJson: string): Promise<string | null>;
-  count(collection: string, filterJson: string): Promise<number>;
+  find(collection: string, filterJson: string, optionsJson?: string): Promise<string[]>;
+  findOne(collection: string, filterJson: string, optionsJson?: string): Promise<string | null>;
+  count(collection: string, filterJson: string, optionsJson?: string): Promise<number>;
   deleteMany(collection: string, filterJson: string): Promise<number>;
   // S2a — transaction primitives (M5c T4 on the Rust side). The Rust core
   // buffers `txInsert` / `txDeleteMany` ops against `txHandle` and replays
@@ -104,11 +167,11 @@ export interface Collection<TDoc> {
    */
   insert(doc: InsertDoc<TDoc>): Promise<void>;
   /** Returns every document matching `filter` (default: all documents). */
-  find(filter?: Record<string, unknown>): Promise<TDoc[]>;
+  find(filter?: Record<string, unknown>, options?: QueryOptions): Promise<TDoc[]>;
   /** Returns the first document matching `filter`, or `null`. */
-  findOne(filter?: Record<string, unknown>): Promise<TDoc | null>;
+  findOne(filter?: Record<string, unknown>, options?: QueryOptions): Promise<TDoc | null>;
   /** Returns the number of documents matching `filter`. */
-  count(filter?: Record<string, unknown>): Promise<number>;
+  count(filter?: Record<string, unknown>, options?: QueryOptions): Promise<number>;
   /** Deletes every document matching `filter`, returning the count removed. */
   delete(filter?: Record<string, unknown>): Promise<number>;
   /**
@@ -128,7 +191,7 @@ export interface Collection<TDoc> {
    * {@link LiveQuery} fires its subscribers/async-iterator on every
    * committed write that touches a document matching `filter`.
    */
-  live(filter?: Record<string, unknown>): LiveQuery<TDoc>;
+  live(filter?: Record<string, unknown>, options?: QueryOptions): LiveQuery<TDoc>;
 }
 
 /**
@@ -213,10 +276,14 @@ export function makeCollection<TDoc>(
       }
     },
 
-    async find(filter: Record<string, unknown> = {}): Promise<TDoc[]> {
+    async find(filter: Record<string, unknown> = {}, options?: QueryOptions): Promise<TDoc[]> {
+      // Serialize options outside the try: a bad client-side options shape
+      // (e.g. the integer-key sort guard) must surface as its own typed
+      // error, not be funneled through `mapNativeError` (native-error path).
+      const optionsJson = serializeOptions(options);
       let rows: string[];
       try {
-        rows = await native.find(collName, JSON.stringify(filter));
+        rows = await native.find(collName, JSON.stringify(filter), optionsJson);
       } catch (err) {
         throw mapNativeError(err);
       }
@@ -229,10 +296,11 @@ export function makeCollection<TDoc>(
       return rows.map((r) => JSON.parse(r) as TDoc);
     },
 
-    async findOne(filter: Record<string, unknown> = {}): Promise<TDoc | null> {
+    async findOne(filter: Record<string, unknown> = {}, options?: QueryOptions): Promise<TDoc | null> {
+      const optionsJson = serializeOptions(options);
       let row: string | null;
       try {
-        row = await native.findOne(collName, JSON.stringify(filter));
+        row = await native.findOne(collName, JSON.stringify(filter), optionsJson);
       } catch (err) {
         throw mapNativeError(err);
       }
@@ -240,9 +308,10 @@ export function makeCollection<TDoc>(
       return row === null ? null : (JSON.parse(row) as TDoc);
     },
 
-    async count(filter: Record<string, unknown> = {}): Promise<number> {
+    async count(filter: Record<string, unknown> = {}, options?: QueryOptions): Promise<number> {
+      const optionsJson = serializeOptions(options);
       try {
-        return await native.count(collName, JSON.stringify(filter));
+        return await native.count(collName, JSON.stringify(filter), optionsJson);
       } catch (err) {
         throw mapNativeError(err);
       }
@@ -268,8 +337,8 @@ export function makeCollection<TDoc>(
       return transactionFn((tx) => applyUpdateLoop<TDoc>(tx, filter, patch));
     },
 
-    live(filter: Record<string, unknown> = {}): LiveQuery<TDoc> {
-      return new LiveQuery<TDoc>(native, collName, filter);
+    live(filter: Record<string, unknown> = {}, options?: QueryOptions): LiveQuery<TDoc> {
+      return new LiveQuery<TDoc>(native, collName, filter, serializeOptions(options));
     },
   };
 }

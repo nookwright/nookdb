@@ -153,6 +153,7 @@ export async function rpc<T>(
   op: 'insert' | 'find' | 'findOne' | 'count' | 'delete',
   collection: string,
   argsJson: string,
+  optionsJson?: string,
 ): Promise<T> {
   const r = await d.send({
     type: 'query',
@@ -160,6 +161,7 @@ export async function rpc<T>(
     collection,
     op,
     argsJson,
+    optionsJson,
   });
   if (r.ok) return r.value as T;
   throw mapBridgeError(r.error);

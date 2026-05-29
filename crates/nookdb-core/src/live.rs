@@ -44,6 +44,7 @@ pub trait EmitSink: Send + Sync {
 struct LiveSub {
     collection: String,
     filter: Value,
+    options: crate::query::QueryOptions,
     sink: Arc<dyn EmitSink>,
     dirty: bool,
 }
@@ -145,9 +146,10 @@ impl LiveEngine {
         &self,
         collection: &str,
         filter: Value,
+        options: crate::query::QueryOptions,
         sink: Arc<dyn EmitSink>,
     ) -> (SubId, String) {
-        let initial = recompute_envelope(&self.shared, collection, &filter);
+        let initial = recompute_envelope(&self.shared, collection, &filter, &options);
         let id = self.shared.next_id.fetch_add(1, Ordering::Relaxed);
         if let Ok(mut subs) = self.shared.subs.lock() {
             subs.insert(
@@ -155,6 +157,7 @@ impl LiveEngine {
                 LiveSub {
                     collection: collection.to_string(),
                     filter,
+                    options,
                     sink,
                     dirty: false,
                 },
@@ -185,9 +188,14 @@ impl Drop for LiveEngine {
 /// MVCC read and serialises the envelope. Any error becomes an
 /// `{"ok":false,"error":"[kind] message"}` envelope (the `[kind]`
 /// convention shared with the NAPI error mapping).
-fn recompute_envelope(shared: &LiveShared, collection: &str, filter: &Value) -> String {
+fn recompute_envelope(
+    shared: &LiveShared,
+    collection: &str,
+    filter: &Value,
+    options: &crate::query::QueryOptions,
+) -> String {
     let run = || -> Result<Vec<Value>, crate::error::NookError> {
-        Collection::new(&shared.db, &shared.schema, collection)?.find(filter)
+        Collection::new(&shared.db, &shared.schema, collection)?.find_with(filter, options)
     };
     match catch_unwind(AssertUnwindSafe(run)) {
         Ok(Ok(docs)) => serde_json::json!({ "ok": true, "value": docs }).to_string(),
@@ -203,6 +211,16 @@ fn recompute_envelope(shared: &LiveShared, collection: &str, filter: &Value) -> 
         .to_string(),
     }
 }
+
+/// One dirty subscription snapshotted for lock-free recompute:
+/// `(id, collection, filter, options, sink)`.
+type WorkItem = (
+    u64,
+    String,
+    Value,
+    crate::query::QueryOptions,
+    Arc<dyn EmitSink>,
+);
 
 fn worker_loop(shared: &LiveShared) {
     loop {
@@ -225,7 +243,7 @@ fn worker_loop(shared: &LiveShared) {
         }
         // Snapshot the dirty subs' descriptors under a short lock, clear
         // their dirty flags (coalesce), then recompute lock-free.
-        let work: Vec<(u64, String, Value, Arc<dyn EmitSink>)> = {
+        let work: Vec<WorkItem> = {
             let Ok(mut subs) = shared.subs.lock() else {
                 continue;
             };
@@ -233,12 +251,18 @@ fn worker_loop(shared: &LiveShared) {
                 .filter(|(_, s)| s.dirty)
                 .map(|(id, s)| {
                     s.dirty = false;
-                    (*id, s.collection.clone(), s.filter.clone(), s.sink.clone())
+                    (
+                        *id,
+                        s.collection.clone(),
+                        s.filter.clone(),
+                        s.options.clone(),
+                        s.sink.clone(),
+                    )
                 })
                 .collect()
         };
         let mut dead: BTreeSet<u64> = BTreeSet::new();
-        for (id, collection, filter, sink) in work {
+        for (id, collection, filter, options, sink) in work {
             if sink.is_closed() {
                 dead.insert(id);
                 continue;
@@ -247,7 +271,7 @@ fn worker_loop(shared: &LiveShared) {
             if shared.subs.lock().map_or(true, |s| !s.contains_key(&id)) {
                 continue;
             }
-            let env = recompute_envelope(shared, &collection, &filter);
+            let env = recompute_envelope(shared, &collection, &filter, &options);
             sink.emit(&env);
         }
         if !dead.is_empty() {
@@ -274,7 +298,9 @@ mod tests {
         let ir = Arc::new(
             SchemaIr::compile(
                 r#"{"u":{"idField":"id","fields":[
-                  {"name":"id","type":"id"},{"name":"role","type":"enum","variants":["admin","user"]}],
+                  {"name":"id","type":"id"},
+                  {"name":"role","type":"enum","variants":["admin","user"]},
+                  {"name":"n","type":"number","optional":true}],
                   "indexes":[{"field":"role","unique":false}]}}"#,
             )
             .unwrap(),
@@ -318,8 +344,12 @@ mod tests {
         insert(&db, &ir, &serde_json::json!({"id":"1","role":"admin"}));
         let engine = LiveEngine::new(db.clone(), ir.clone());
         let sink = Arc::new(VecSink::default());
-        let (_sub, initial) =
-            engine.register("u", serde_json::json!({"role":"admin"}), sink.clone());
+        let (_sub, initial) = engine.register(
+            "u",
+            serde_json::json!({"role":"admin"}),
+            crate::query::QueryOptions::default(),
+            sink.clone(),
+        );
         assert!(initial.contains("\"ok\":true"));
         assert!(
             initial.contains("\"1\""),
@@ -333,11 +363,54 @@ mod tests {
     }
 
     #[test]
+    fn register_with_options_sorts_and_limits_initial_and_recompute() {
+        let (_d, db, ir) = setup();
+        for (id, n) in [("a", 3), ("b", 1), ("c", 2)] {
+            insert(
+                &db,
+                &ir,
+                &serde_json::json!({"id": id, "role": "user", "n": n}),
+            );
+        }
+        let engine = LiveEngine::new(db.clone(), ir.clone());
+        let sink = Arc::new(VecSink::default());
+        let opts =
+            crate::query::QueryOptions::parse(Some(r#"{"sort":[["n","asc"]],"limit":2}"#)).unwrap();
+        let (_sub, initial) =
+            engine.register("u", serde_json::json!({"role":"user"}), opts, sink.clone());
+        let v: serde_json::Value = serde_json::from_str(&initial).unwrap();
+        let ids: Vec<_> = v["value"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|d| d["id"].as_str().unwrap().to_string())
+            .collect();
+        assert_eq!(ids, vec!["b", "c"]);
+
+        insert(&db, &ir, &serde_json::json!({"id":"d","role":"user","n":0}));
+        wait_until(|| !sink.0.lock().unwrap().is_empty());
+        let last = sink.0.lock().unwrap().last().unwrap().clone();
+        let last_v: serde_json::Value = serde_json::from_str(&last).unwrap();
+        let last_ids: Vec<_> = last_v["value"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|d| d["id"].as_str().unwrap().to_string())
+            .collect();
+        assert_eq!(last_ids, vec!["d", "b"]);
+    }
+
+    #[test]
     fn a_commit_to_an_unrelated_collection_does_not_emit() {
         let (_d, db, ir) = setup();
         let engine = LiveEngine::new(db.clone(), ir);
         let sink = Arc::new(VecSink::default());
-        let (_s, _i) = engine.register("u", serde_json::json!({}), sink.clone());
+        let (_s, _i) = engine.register(
+            "u",
+            serde_json::json!({}),
+            crate::query::QueryOptions::default(),
+            sink.clone(),
+        );
         // write to a different collection through the bytes API
         db.write(|tx| tx.put("other", b"x", b"y")).unwrap();
         std::thread::sleep(Duration::from_millis(50));
@@ -349,7 +422,12 @@ mod tests {
         let (_d, db, ir) = setup();
         let engine = LiveEngine::new(db.clone(), ir.clone());
         let sink = Arc::new(VecSink::default());
-        let (sub, _i) = engine.register("u", serde_json::json!({}), sink.clone());
+        let (sub, _i) = engine.register(
+            "u",
+            serde_json::json!({}),
+            crate::query::QueryOptions::default(),
+            sink.clone(),
+        );
         engine.cancel(sub);
         insert(&db, &ir, &serde_json::json!({"id":"9","role":"user"}));
         std::thread::sleep(Duration::from_millis(50));
@@ -364,7 +442,12 @@ mod tests {
         let (_d, db, ir) = setup();
         let engine = LiveEngine::new(db.clone(), ir.clone());
         let sink = Arc::new(VecSink::default());
-        let (_s, _i) = engine.register("u", serde_json::json!({}), sink.clone());
+        let (_s, _i) = engine.register(
+            "u",
+            serde_json::json!({}),
+            crate::query::QueryOptions::default(),
+            sink.clone(),
+        );
         for i in 0..20 {
             insert(
                 &db,
@@ -409,7 +492,7 @@ mod tests {
             let (_d, db, ir) = setup();
             let engine = LiveEngine::new(db.clone(), ir.clone());
             let sink = Arc::new(VecSink::default());
-            let (_s, _i) = engine.register("u", serde_json::json!({"role":"admin"}), sink.clone());
+            let (_s, _i) = engine.register("u", serde_json::json!({"role":"admin"}), crate::query::QueryOptions::default(), sink.clone());
 
             for (n, is_admin) in &ops {
                 let role = if *is_admin { "admin" } else { "user" };

@@ -43,6 +43,7 @@ export type Envelope =
       collection: string;
       op: QueryOp;
       argsJson: string;
+      optionsJson?: string | undefined;
     }
   | {
       type: 'subscribe';
@@ -50,6 +51,7 @@ export type Envelope =
       subscriptionId: string;
       collection: string;
       filterJson: string;
+      optionsJson?: string | undefined;
     }
   | { type: 'subscribe-cancel'; subscriptionId: string }
   | { type: 'response'; id: string; ok: true; value: unknown }

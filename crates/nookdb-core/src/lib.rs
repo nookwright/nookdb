@@ -14,6 +14,7 @@ pub mod license_verify;
 pub mod live;
 pub mod migrate;
 pub mod notify;
+pub mod query;
 pub mod schema;
 pub mod storage;
 

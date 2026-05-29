@@ -31,6 +31,7 @@ export interface LiveNative {
   live(
     collection: string,
     filterJson: string,
+    optionsJson: string | undefined,
     onEmit: (envelopeJson: string) => void,
   ): Promise<{ subscriptionId: string; initialJson: string }>;
   liveCancel(subscriptionId: string): void;
@@ -67,9 +68,14 @@ export class LiveQuery<T> {
   #native: LiveNative | undefined;
   #received = false;
 
-  constructor(native: LiveNative, collection: string, filter: Record<string, unknown>) {
+  constructor(
+    native: LiveNative,
+    collection: string,
+    filter: Record<string, unknown>,
+    optionsJson?: string,
+  ) {
     void native
-      .live(collection, JSON.stringify(filter), (env) => {
+      .live(collection, JSON.stringify(filter), optionsJson, (env) => {
         this.#onEnvelope(env);
       })
       .then(({ subscriptionId, initialJson }) => {
