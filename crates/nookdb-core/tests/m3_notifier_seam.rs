@@ -50,7 +50,12 @@ fn passive_observer_and_live_subscriber_both_receive_and_live_is_unchanged() {
     // A `live()` subscription (the reactive path).
     let engine = LiveEngine::new(db.clone(), schema.clone());
     let sink = Arc::new(RecordingSink::default());
-    let (_sub, initial) = engine.register("u", serde_json::json!({"role":"admin"}), sink.clone());
+    let (_sub, initial) = engine.register(
+        "u",
+        serde_json::json!({"role":"admin"}),
+        nookdb_core::query::QueryOptions::default(),
+        sink.clone(),
+    );
     assert!(initial.contains("\"ok\":true"));
 
     // A PASSIVE observer attached through the public seam, alongside it.
