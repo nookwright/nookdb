@@ -44,4 +44,18 @@ describe('query options serialization', () => {
     expect(native.findOne).toHaveBeenCalledWith('u', '{}', JSON.stringify({ sort: [['n', 'asc']] }));
     expect(native.count).toHaveBeenCalledWith('u', '{}', JSON.stringify({ limit: 10 }));
   });
+
+  it('sends limit:0 (meaningful falsy value, not dropped)', async () => {
+    const native = stubNative();
+    const c = makeCollection<{ id: string; n: number }>(native, 'u', builder, noTx);
+    await c.find({}, { limit: 0 });
+    expect(native.find).toHaveBeenCalledWith('u', '{}', JSON.stringify({ limit: 0 }));
+  });
+
+  it('empty sort object with no other options sends undefined', async () => {
+    const native = stubNative();
+    const c = makeCollection<{ id: string; n: number }>(native, 'u', builder, noTx);
+    await c.find({}, { sort: {} });
+    expect(native.find).toHaveBeenCalledWith('u', '{}', undefined);
+  });
 });
