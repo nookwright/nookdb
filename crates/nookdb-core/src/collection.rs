@@ -664,4 +664,28 @@ mod tests {
         let ns: Vec<_> = got.iter().map(|d| d["n"].as_i64().unwrap()).collect();
         assert_eq!(ns, vec![2, 3]);
     }
+
+    #[test]
+    fn count_with_applies_offset_and_limit_cap() {
+        let (_d, db, ir) = setup_numeric();
+        let c = Collection::new(&db, &ir, "u").unwrap();
+        for (id, n) in [("a", 1), ("b", 2), ("c", 3), ("d", 4)] {
+            c.insert(&serde_json::json!({"id": id, "n": n})).unwrap();
+        }
+        let parse = |s: &str| crate::query::QueryOptions::parse(Some(s)).unwrap();
+        let f = serde_json::json!({});
+        assert_eq!(
+            c.count_with(&f, &crate::query::QueryOptions::default())
+                .unwrap(),
+            4
+        );
+        assert_eq!(c.count_with(&f, &parse(r#"{"limit":2}"#)).unwrap(), 2);
+        assert_eq!(c.count_with(&f, &parse(r#"{"offset":9}"#)).unwrap(), 0);
+        assert_eq!(
+            c.count_with(&f, &parse(r#"{"offset":1,"limit":2}"#))
+                .unwrap(),
+            2
+        );
+        assert_eq!(c.count_with(&f, &parse(r#"{"limit":0}"#)).unwrap(), 0);
+    }
 }
