@@ -35,7 +35,12 @@ export function remoteLiveNative(
   let nextSubId = 1;
 
   return {
-    async live(collection, filterJson, onEmit) {
+    // `optionsJson` (sort/limit/offset) is accepted to match nookdb's
+    // updated `LiveNative.live` signature, but is NOT forwarded over the
+    // bridge yet — the `subscribe` wire envelope and Host carry no query
+    // options. Cross-process live() sort/limit is a follow-up; today the
+    // renderer proxy never passes options, so this is always undefined.
+    async live(collection, filterJson, _optionsJson, onEmit) {
       const subscriptionId = `sub-${nextSubId++}`;
       sinks.set(subscriptionId, onEmit);
       const reply = await dispatcher.send({
