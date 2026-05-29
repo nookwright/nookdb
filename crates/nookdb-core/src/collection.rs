@@ -159,7 +159,9 @@ impl<'a> Collection<'a> {
         self.all_docs()
     }
 
-    /// Returns every document in the collection that matches `filter`.
+    /// Returns every document in the collection that matches `filter`,
+    /// in storage order. Equivalent to `find_with(filter,
+    /// &QueryOptions::default())`.
     ///
     /// Operator support (M2): bare equality, `$ne`, `$in`, `$nin`,
     /// `$gt`, `$gte`, `$lt`, `$lte`, `$exists`. An empty filter (`{}`)
@@ -169,11 +171,32 @@ impl<'a> Collection<'a> {
     ///
     /// Storage/corruption errors.
     pub fn find(&self, filter: &Value) -> Result<Vec<Value>, NookError> {
-        Ok(self
+        self.find_with(filter, &crate::query::QueryOptions::default())
+    }
+
+    /// Returns documents matching `filter`, then applies `opts`
+    /// (schema-typed sort → offset → limit). null/missing sort last;
+    /// ties break by id.
+    ///
+    /// Operator support for `filter` matches [`find`](Self::find).
+    ///
+    /// # Errors
+    ///
+    /// Storage/corruption errors; `NookError::Schema` if a sort field is
+    /// unknown or non-orderable.
+    pub fn find_with(
+        &self,
+        filter: &Value,
+        opts: &crate::query::QueryOptions,
+    ) -> Result<Vec<Value>, NookError> {
+        let matched: Vec<Value> = self
             .candidates(filter)?
             .into_iter()
             .filter(|d| Self::matches(d, filter))
-            .collect())
+            .collect();
+        opts.apply(matched, &self.ir.id_field, |f| {
+            self.ir.field(f).map(|fi| &fi.ty)
+        })
     }
 
     /// Returns the first document matching `filter`, or `None`.
@@ -182,7 +205,24 @@ impl<'a> Collection<'a> {
     ///
     /// Storage/corruption errors.
     pub fn find_one(&self, filter: &Value) -> Result<Option<Value>, NookError> {
-        Ok(self.find(filter)?.into_iter().next())
+        self.find_one_with(filter, &crate::query::QueryOptions::default())
+    }
+
+    /// `find_one` honoring `opts`: sorts, then returns the first row.
+    /// `limit` is forced to 1 internally.
+    ///
+    /// # Errors
+    ///
+    /// Storage/corruption errors; sort-field errors as
+    /// [`find_with`](Self::find_with).
+    pub fn find_one_with(
+        &self,
+        filter: &Value,
+        opts: &crate::query::QueryOptions,
+    ) -> Result<Option<Value>, NookError> {
+        let mut one = opts.clone();
+        one.limit = Some(1);
+        Ok(self.find_with(filter, &one)?.into_iter().next())
     }
 
     /// Returns the number of documents matching `filter`.
@@ -191,7 +231,27 @@ impl<'a> Collection<'a> {
     ///
     /// Storage/corruption errors.
     pub fn count(&self, filter: &Value) -> Result<usize, NookError> {
-        Ok(self.find(filter)?.len())
+        self.count_with(filter, &crate::query::QueryOptions::default())
+    }
+
+    /// `count` honoring `opts`: `sort` is ignored (irrelevant to a count);
+    /// `offset`/`limit` cap the returned count ("are there at most N?").
+    ///
+    /// # Errors
+    ///
+    /// Storage/corruption errors.
+    pub fn count_with(
+        &self,
+        filter: &Value,
+        opts: &crate::query::QueryOptions,
+    ) -> Result<usize, NookError> {
+        let total = self
+            .candidates(filter)?
+            .into_iter()
+            .filter(|d| Self::matches(d, filter))
+            .count();
+        let after_offset = total.saturating_sub(opts.offset);
+        Ok(opts.limit.map_or(after_offset, |l| after_offset.min(l)))
     }
 
     /// Deletes every document matching `filter`, removing each document and
@@ -574,5 +634,34 @@ mod tests {
                 }
             }
         }
+    }
+
+    /// Opens a temp DB with a collection `"u"` that has a numeric field `n`,
+    /// for exercising sort/limit/offset query options.
+    fn setup_numeric() -> (tempfile::TempDir, Database, SchemaIr) {
+        let d = tempfile::tempdir().unwrap();
+        let db = Database::open(d.path().join("t.db")).unwrap();
+        let ir = SchemaIr::compile(
+            r#"{"u":{"idField":"id","fields":[
+          {"name":"id","type":"id"},{"name":"n","type":"number"}]}}"#,
+        )
+        .unwrap();
+        (d, db, ir)
+    }
+
+    #[test]
+    fn find_with_sorts_limits_offsets() {
+        let (_d, db, ir) = setup_numeric();
+        let c = Collection::new(&db, &ir, "u").unwrap();
+        for (id, n) in [("a", 4), ("b", 1), ("c", 3), ("d", 2)] {
+            c.insert(&serde_json::json!({"id": id, "n": n})).unwrap();
+        }
+        let opts = crate::query::QueryOptions::parse(Some(
+            r#"{"sort":[["n","asc"]],"offset":1,"limit":2}"#,
+        ))
+        .unwrap();
+        let got = c.find_with(&serde_json::json!({}), &opts).unwrap();
+        let ns: Vec<_> = got.iter().map(|d| d["n"].as_i64().unwrap()).collect();
+        assert_eq!(ns, vec![2, 3]);
     }
 }
