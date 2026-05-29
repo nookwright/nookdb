@@ -90,7 +90,7 @@ export type {
 } from './database.js';
 export type { BackupStats, RestoreOptions, RestoreStats } from './backup.js';
 export { backupToPath, restoreFromPath } from './backup.js';
-export type { Collection, CollectionBuilderLike, InsertDoc, NativeSchemaDatabase, QueryOptions } from './collection.js';
+export type { Collection, CollectionBuilderLike, InsertDoc, NativeSchemaDatabase, QueryOptions, SortKey } from './collection.js';
 export { LiveQuery } from './live.js';
 export type { LiveNative } from './live.js';
 export { s, toDescriptor } from './schema/s.js';

@@ -58,4 +58,43 @@ describe('query options serialization', () => {
     await c.find({}, { sort: {} });
     expect(native.find).toHaveBeenCalledWith('u', '{}', undefined);
   });
+
+  it('array sort form preserves priority order verbatim', async () => {
+    const native = stubNative();
+    const c = makeCollection<{ id: string; n: number }>(native, 'u', builder, noTx);
+    await c.find({}, { sort: [['status', 'asc'], ['updatedAt', 'desc']] });
+    expect(native.find).toHaveBeenCalledWith(
+      'u',
+      '{}',
+      JSON.stringify({ sort: [['status', 'asc'], ['updatedAt', 'desc']] }),
+    );
+  });
+
+  it('array sort form preserves order for integer-like field names', async () => {
+    const native = stubNative();
+    const c = makeCollection<{ id: string; n: number }>(native, 'u', builder, noTx);
+    // Object form would let JS hoist "2" ahead of "rank"; the array form must not.
+    await c.find({}, { sort: [['rank', 'asc'], ['2', 'desc']] });
+    expect(native.find).toHaveBeenCalledWith(
+      'u',
+      '{}',
+      JSON.stringify({ sort: [['rank', 'asc'], ['2', 'desc']] }),
+    );
+  });
+
+  it('throws on multi-key object sort with an integer-like field name', async () => {
+    const native = stubNative();
+    const c = makeCollection<{ id: string; n: number }>(native, 'u', builder, noTx);
+    await expect(c.find({}, { sort: { rank: 'asc', '2': 'desc' } })).rejects.toThrow(
+      /integer-like field names/,
+    );
+    expect(native.find).not.toHaveBeenCalled();
+  });
+
+  it('allows a single integer-like key in object form (order is unambiguous)', async () => {
+    const native = stubNative();
+    const c = makeCollection<{ id: string; n: number }>(native, 'u', builder, noTx);
+    await c.find({}, { sort: { '2024': 'asc' } });
+    expect(native.find).toHaveBeenCalledWith('u', '{}', JSON.stringify({ sort: [['2024', 'asc']] }));
+  });
 });

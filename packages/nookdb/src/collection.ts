@@ -24,14 +24,28 @@
  * surfaces as the matching typed `NookError` subclass.
  */
 
-import { mapNativeError } from './errors.js';
+import { mapNativeError, NookInvalidArgError } from './errors.js';
 import { applyDefaults } from './schema/defaults.js';
 import { LiveQuery, type LiveNative } from './live.js';
 
+/** One `[field, direction]` sort key, used by the order-safe array form. */
+export type SortKey = readonly [field: string, direction: 'asc' | 'desc'];
+
 /** Sort/pagination options for read queries. */
 export interface QueryOptions {
-  /** Field → direction. Object key order is the sort-priority order. */
-  sort?: Record<string, 'asc' | 'desc'>;
+  /**
+   * Sort keys, highest priority first.
+   *
+   * Two forms:
+   * - **Object** `{ field: direction }` — ergonomic for the common case.
+   *   Priority follows key order, BUT JavaScript hoists integer-like keys
+   *   (e.g. `"2"`, `"2024"`) ahead of string keys, so a multi-key object
+   *   that includes an integer-like field name cannot express a reliable
+   *   priority — that case throws; use the array form instead.
+   * - **Array** `[[field, direction], ...]` — guarantees priority order for
+   *   ANY field names, including integer-like ones.
+   */
+  sort?: Record<string, 'asc' | 'desc'> | readonly SortKey[];
   /** Max rows to return (non-negative integer). */
   limit?: number;
   /** Rows to skip before returning (non-negative integer). */
@@ -40,15 +54,33 @@ export interface QueryOptions {
 
 /**
  * Serializes {@link QueryOptions} to the wire `optionsJson`, or `undefined`
- * when there's nothing to send. `sort` becomes an array of `[field, dir]`
- * pairs so key/priority order survives the Rust-side JSON decode (a JSON
- * object would lose order).
+ * when there's nothing to send. `sort` always becomes an array of
+ * `[field, dir]` pairs so key/priority order survives the Rust-side JSON
+ * decode (a JSON object would lose order). The array form is used verbatim;
+ * the object form is converted via `Object.entries`, which is reliable
+ * unless integer-like keys would be reordered (guarded below).
+ *
+ * @throws {NookInvalidArgError} when `sort` is given in object form with
+ *   more than one key and an integer-like field name, since JS key ordering
+ *   would silently rewrite the sort priority.
  */
 function serializeOptions(options?: QueryOptions): string | undefined {
   if (!options) return undefined;
   const wire: { sort?: [string, string][]; limit?: number; offset?: number } = {};
   if (options.sort) {
-    const pairs = Object.entries(options.sort);
+    let pairs: [string, string][];
+    if (Array.isArray(options.sort)) {
+      pairs = (options.sort as readonly SortKey[]).map(([f, d]) => [f, d] as [string, string]);
+    } else {
+      pairs = Object.entries(options.sort as Record<string, 'asc' | 'desc'>);
+      if (pairs.length > 1 && pairs.some(([k]) => /^\d+$/.test(k))) {
+        throw new NookInvalidArgError(
+          'sort priority is unreliable for integer-like field names in object form ' +
+            '(JS reorders integer-like keys); pass sort as an array of ' +
+            '[field, direction] pairs instead',
+        );
+      }
+    }
     if (pairs.length > 0) wire.sort = pairs;
   }
   if (options.limit !== undefined) wire.limit = options.limit;
@@ -245,9 +277,13 @@ export function makeCollection<TDoc>(
     },
 
     async find(filter: Record<string, unknown> = {}, options?: QueryOptions): Promise<TDoc[]> {
+      // Serialize options outside the try: a bad client-side options shape
+      // (e.g. the integer-key sort guard) must surface as its own typed
+      // error, not be funneled through `mapNativeError` (native-error path).
+      const optionsJson = serializeOptions(options);
       let rows: string[];
       try {
-        rows = await native.find(collName, JSON.stringify(filter), serializeOptions(options));
+        rows = await native.find(collName, JSON.stringify(filter), optionsJson);
       } catch (err) {
         throw mapNativeError(err);
       }
@@ -261,9 +297,10 @@ export function makeCollection<TDoc>(
     },
 
     async findOne(filter: Record<string, unknown> = {}, options?: QueryOptions): Promise<TDoc | null> {
+      const optionsJson = serializeOptions(options);
       let row: string | null;
       try {
-        row = await native.findOne(collName, JSON.stringify(filter), serializeOptions(options));
+        row = await native.findOne(collName, JSON.stringify(filter), optionsJson);
       } catch (err) {
         throw mapNativeError(err);
       }
@@ -272,8 +309,9 @@ export function makeCollection<TDoc>(
     },
 
     async count(filter: Record<string, unknown> = {}, options?: QueryOptions): Promise<number> {
+      const optionsJson = serializeOptions(options);
       try {
-        return await native.count(collName, JSON.stringify(filter), serializeOptions(options));
+        return await native.count(collName, JSON.stringify(filter), optionsJson);
       } catch (err) {
         throw mapNativeError(err);
       }
