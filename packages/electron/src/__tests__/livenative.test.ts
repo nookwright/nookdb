@@ -83,6 +83,18 @@ describe('remoteLiveNative drives the real M3 LiveQuery (non-hollow proof)', () 
     expect(cancel).toBeDefined();
   });
 
+  it('forwards optionsJson in the subscribe envelope', async () => {
+    const t = makeMemoryTransport();
+    const d = new RpcDispatcher(t);
+    const live = remoteLiveNative(t, d);
+    new LiveQuery<{ id: string }>(live, 'users', {}, JSON.stringify({ sort: { n: 'asc' }, limit: 2 }));
+    await new Promise((r) => setTimeout(r, 0));
+    const sub = t.sent.find(
+      (e): e is Extract<Envelope, { type: 'subscribe' }> => e.type === 'subscribe',
+    );
+    expect(sub?.optionsJson).toBe(JSON.stringify({ sort: { n: 'asc' }, limit: 2 }));
+  });
+
   it('terminal error envelope fails the M3 LiveQuery', async () => {
     const t = makeMemoryTransport();
     const d = new RpcDispatcher(t);

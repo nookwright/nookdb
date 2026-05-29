@@ -35,12 +35,11 @@ export function remoteLiveNative(
   let nextSubId = 1;
 
   return {
-    // `optionsJson` (sort/limit/offset) is accepted to match nookdb's
-    // updated `LiveNative.live` signature, but is NOT forwarded over the
-    // bridge yet — the `subscribe` wire envelope and Host carry no query
-    // options. Cross-process live() sort/limit is a follow-up; today the
-    // renderer proxy never passes options, so this is always undefined.
-    async live(collection, filterJson, _optionsJson, onEmit) {
+    // `optionsJson` (the public `QueryOptions` JSON — sort/limit/offset) is
+    // forwarded verbatim in the `subscribe` wire envelope; the Host parses it
+    // and applies it to `coll.live(filter, options)`. `undefined` when the
+    // caller passed no options.
+    async live(collection, filterJson, optionsJson, onEmit) {
       const subscriptionId = `sub-${nextSubId++}`;
       sinks.set(subscriptionId, onEmit);
       const reply = await dispatcher.send({
@@ -49,6 +48,7 @@ export function remoteLiveNative(
         subscriptionId,
         collection,
         filterJson,
+        optionsJson,
       });
       if (!reply.ok) {
         sinks.delete(subscriptionId);

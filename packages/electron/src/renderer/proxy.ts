@@ -3,6 +3,7 @@ import type {
   Collection,
   CollectionBuilderLike,
   InsertDoc,
+  QueryOptions,
   SchemaDatabase,
   SchemaShape,
   TxProxy,
@@ -12,6 +13,11 @@ import { rpc } from '../shared/rpc.js';
 import type { RpcDispatcher } from '../shared/rpc.js';
 import { remoteLiveNative } from './livenative.js';
 import type { Transport } from '../shared/wire.js';
+
+/** Serializes QueryOptions to the wire optionsJson (public object form), or undefined. */
+function serialize(options?: QueryOptions): string | undefined {
+  return options ? JSON.stringify(options) : undefined;
+}
 
 /**
  * Builds a typed `Collection<TDoc>` proxy that routes ops over the
@@ -35,14 +41,14 @@ export function makeRemoteCollection<TDoc>(
     async insert(doc: InsertDoc<TDoc>): Promise<void> {
       await rpc<void>(dispatcher, 'insert', collName, JSON.stringify(doc));
     },
-    async find(filter: Record<string, unknown> = {}): Promise<TDoc[]> {
-      return rpc<TDoc[]>(dispatcher, 'find', collName, JSON.stringify(filter));
+    async find(filter: Record<string, unknown> = {}, options?: QueryOptions): Promise<TDoc[]> {
+      return rpc<TDoc[]>(dispatcher, 'find', collName, JSON.stringify(filter), serialize(options));
     },
-    async findOne(filter: Record<string, unknown> = {}): Promise<TDoc | null> {
-      return rpc<TDoc | null>(dispatcher, 'findOne', collName, JSON.stringify(filter));
+    async findOne(filter: Record<string, unknown> = {}, options?: QueryOptions): Promise<TDoc | null> {
+      return rpc<TDoc | null>(dispatcher, 'findOne', collName, JSON.stringify(filter), serialize(options));
     },
-    async count(filter: Record<string, unknown> = {}): Promise<number> {
-      return rpc<number>(dispatcher, 'count', collName, JSON.stringify(filter));
+    async count(filter: Record<string, unknown> = {}, options?: QueryOptions): Promise<number> {
+      return rpc<number>(dispatcher, 'count', collName, JSON.stringify(filter), serialize(options));
     },
     async delete(filter: Record<string, unknown> = {}): Promise<number> {
       return rpc<number>(dispatcher, 'delete', collName, JSON.stringify(filter));
@@ -90,8 +96,8 @@ export function makeRemoteCollection<TDoc>(
       }
       return count;
     },
-    live(filter: Record<string, unknown> = {}): LiveQuery<TDoc> {
-      return new LiveQuery<TDoc>(live, collName, filter);
+    live(filter: Record<string, unknown> = {}, options?: QueryOptions): LiveQuery<TDoc> {
+      return new LiveQuery<TDoc>(live, collName, filter, serialize(options));
     },
   };
 }

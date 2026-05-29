@@ -15,7 +15,7 @@
  * re-invoke onclose (loop).
  */
 
-import { type SchemaDatabase, type SchemaShape, toDescriptor } from 'nookdb';
+import { type QueryOptions, type SchemaDatabase, type SchemaShape, toDescriptor } from 'nookdb';
 import { type Authorizer, type SenderInfo } from '../shared/authorizer.js';
 import { canonicalize } from '../shared/canonical.js';
 import type { BridgeOp, Envelope, QueryOp, SerializedError } from '../shared/wire.js';
@@ -73,11 +73,11 @@ function serializeError(err: unknown): SerializedError {
  */
 interface CollectionHandle {
   insert(doc: unknown): Promise<void>;
-  find(filter: Record<string, unknown>): Promise<unknown[]>;
-  findOne(filter: Record<string, unknown>): Promise<unknown>;
-  count(filter: Record<string, unknown>): Promise<number>;
+  find(filter: Record<string, unknown>, options?: QueryOptions): Promise<unknown[]>;
+  findOne(filter: Record<string, unknown>, options?: QueryOptions): Promise<unknown>;
+  count(filter: Record<string, unknown>, options?: QueryOptions): Promise<number>;
   delete(filter: Record<string, unknown>): Promise<number>;
-  live(filter: Record<string, unknown>): LiveQueryHandle;
+  live(filter: Record<string, unknown>, options?: QueryOptions): LiveQueryHandle;
 }
 
 /** The subset of LiveQuery<T> that Host depends on. */
@@ -212,7 +212,7 @@ export class Host<TSchema extends SchemaShape> {
         });
         return;
       }
-      const value = await this.#dispatch(env.collection, env.op, env.argsJson);
+      const value = await this.#dispatch(env.collection, env.op, env.argsJson, env.optionsJson);
       state.transport.postMessage({ type: 'response', id: env.id, ok: true, value });
     } catch (err) {
       state.transport.postMessage({
@@ -249,7 +249,11 @@ export class Host<TSchema extends SchemaShape> {
       }
       const coll = this.#getCollection(env.collection);
       const filter = JSON.parse(env.filterJson) as Record<string, unknown>;
-      const lq = coll.live(filter);
+      const options =
+        env.optionsJson === undefined
+          ? undefined
+          : (JSON.parse(env.optionsJson) as QueryOptions);
+      const lq = coll.live(filter, options);
 
       // Wait one microtask for the M3 LiveQuery to receive its initial snapshot.
       await new Promise<void>((r) => setTimeout(r, 0));
@@ -311,16 +315,25 @@ export class Host<TSchema extends SchemaShape> {
     return coll as CollectionHandle;
   }
 
-  async #dispatch(collection: string, op: QueryOp, argsJson: string): Promise<unknown> {
+  async #dispatch(
+    collection: string,
+    op: QueryOp,
+    argsJson: string,
+    optionsJson?: string,
+  ): Promise<unknown> {
     const coll = this.#getCollection(collection);
     if (op === 'insert') {
       await coll.insert(JSON.parse(argsJson) as unknown);
       return undefined;
     }
     const filter = JSON.parse(argsJson) as Record<string, unknown>;
-    if (op === 'find') return coll.find(filter);
-    if (op === 'findOne') return coll.findOne(filter);
-    if (op === 'count') return coll.count(filter);
+    const options =
+      optionsJson === undefined
+        ? undefined
+        : (JSON.parse(optionsJson) as QueryOptions);
+    if (op === 'find') return coll.find(filter, options);
+    if (op === 'findOne') return coll.findOne(filter, options);
+    if (op === 'count') return coll.count(filter, options);
     if (op === 'delete') return coll.delete(filter);
     throw new Error(`[invalid_arg] unknown op ${op as string}`);
   }

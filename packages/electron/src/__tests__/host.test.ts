@@ -14,6 +14,7 @@ const schema = {
     .collection({
       id: s.id(),
       role: s.enum(['admin', 'user'] as const),
+      n: s.number().optional(),
     })
     .index('role'),
 };
@@ -213,6 +214,77 @@ describe('Host — subscription lifecycle', () => {
       const last = emits[emits.length - 1]!;
       expect(last.subscriptionId).toBe('sub-A');
       expect(last.envelope).toContain('"ok":true');
+    } finally {
+      await ctx.cleanup();
+    }
+  });
+
+  it('applies query options (sort/limit) for find over the bridge', async () => {
+    const ctx = await setup();
+    try {
+      for (const [n] of [[3], [1], [2]] as const) {
+        await ctx.db.users.insert({ role: 'user', n });
+      }
+      const t = makeServerTransport();
+      ctx.host.acceptClient(t, sender);
+      t.inject({
+        type: 'hello',
+        clientId: 'c1',
+        descriptor: canonicalize(JSON.parse(toDescriptor(schema as never))),
+      });
+      await new Promise((r) => setTimeout(r, 10));
+      t.inject({
+        type: 'query',
+        id: 'q1',
+        collection: 'users',
+        op: 'find',
+        argsJson: JSON.stringify({ role: 'user' }),
+        optionsJson: JSON.stringify({ sort: { n: 'asc' }, limit: 2 }),
+      });
+      await new Promise((r) => setTimeout(r, 20));
+      const resp = t.sent.find(
+        (e) => e.type === 'response' && (e as { id: string }).id === 'q1',
+      ) as Extract<Envelope, { type: 'response'; ok: true }>;
+      expect(resp.ok).toBe(true);
+      const rows = resp.value as { n: number }[];
+      expect(rows.map((r) => r.n)).toEqual([1, 2]);
+    } finally {
+      await ctx.cleanup();
+    }
+  });
+
+  it('applies query options (sort/limit) for a live subscription over the bridge', async () => {
+    const ctx = await setup();
+    try {
+      for (const [n] of [[3], [1], [2]] as const) {
+        await ctx.db.users.insert({ role: 'user', n });
+      }
+      const t = makeServerTransport();
+      ctx.host.acceptClient(t, sender);
+      t.inject({
+        type: 'hello',
+        clientId: 'c1',
+        descriptor: canonicalize(JSON.parse(toDescriptor(schema as never))),
+      });
+      await new Promise((r) => setTimeout(r, 10));
+      t.inject({
+        type: 'subscribe',
+        id: 's1',
+        subscriptionId: 'sub-A',
+        collection: 'users',
+        filterJson: JSON.stringify({ role: 'user' }),
+        optionsJson: JSON.stringify({ sort: { n: 'asc' }, limit: 2 }),
+      });
+      await new Promise((r) => setTimeout(r, 30));
+      const ack = t.sent.find(
+        (e) => e.type === 'response' && (e as { id: string }).id === 's1',
+      ) as Extract<Envelope, { type: 'response'; ok: true }>;
+      expect(ack.ok).toBe(true);
+      const initial = JSON.parse((ack.value as { initialJson: string }).initialJson) as {
+        ok: boolean;
+        value: { n: number }[];
+      };
+      expect(initial.value.map((r) => r.n)).toEqual([1, 2]);
     } finally {
       await ctx.cleanup();
     }
