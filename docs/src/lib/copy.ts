@@ -26,7 +26,7 @@ export const copy = {
     product: 'nookdb',
   },
   hero: {
-    headline: 'All three in one API.',
+    headline: 'Local-first data with a memory.',
     subhead:
       'A database in Electron means better-sqlite3 + hand-written IPC + hand-rolled reactivity. NookDB gives you all three in one API — schema-first, reactive, multi-process, built on a Rust core.',
     install: 'npm install nookdb @nookdb/electron',
