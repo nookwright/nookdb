@@ -4,7 +4,7 @@
 
 <h1 align="center">NookDB</h1>
 
-<p align="center"><b>Schema-first, reactive, local-first database for Electron.</b></p>
+<p align="center"><b>A database in Electron means <code>better-sqlite3</code> + hand-written IPC + hand-rolled reactivity. NookDB gives you all three in one API.</b></p>
 
 <p align="center">
   <a href="https://www.npmjs.com/package/nookdb"><img src="https://img.shields.io/npm/v/nookdb.svg?label=nookdb" alt="npm version" /></a>
@@ -13,9 +13,9 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" /></a>
 </p>
 
-Built on a Rust core (redb) and exposed to Node via NAPI-rs. First-class multi-process support (Electron main ↔ renderer) out of the box.
+Define your schema once and types, queries, and live updates flow from it. The renderer talks to the database directly — no IPC code to write. Durability comes from a Rust core (redb) exposed to Node via NAPI-rs, with first-class multi-process support (Electron main ↔ renderer) out of the box.
 
-> **1.0.1 released.** The public API is stable. Breaking changes follow semver.
+> **1.1.0 released.** The public API is stable. Breaking changes follow semver.
 
 ## Why NookDB?
 
