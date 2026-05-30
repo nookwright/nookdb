@@ -1,6 +1,6 @@
 {
   "name": "@nookdb/electron",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Electron multi-process bindings for nookdb — main/preload/renderer IPC bridge.",
   "homepage": "https://github.com/nookwright/nookdb/tree/main/packages/electron#readme",
   "keywords": [

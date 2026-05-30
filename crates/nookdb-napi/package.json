@@ -1,6 +1,6 @@
 {
   "name": "@nookdb/binding",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "NAPI-rs binding for nookdb-core. Platform-dispatch loader; binary lives in @nookdb/binding-<triple> sibling packages.",
   "main": "index.js",
   "types": "index.d.ts",
